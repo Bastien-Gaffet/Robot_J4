@@ -34,13 +34,14 @@ At the heart of the decision-making process lies the **Minimax algorithm**, a cl
 
 ## 📦 Repository Structure
 
-- **minimax/** : contains the implementation of the Minimax algorithm and related game logic for Connect Four.
-- **arduino/** : source code to control the robotic arm (J4).
-- **interface/** : Python scripts for user interaction and input/output management.
-- **data/** : optional folder to store saved games, move histories, scores, and logs.
-- **docs/** : technical documentation, circuit diagrams, and design notes.
-- **LICENSE** : contains the full license terms governing the use, distribution, and attribution of this project.
-- **README.md** : this file, giving a general overview of the project.
+- **arduino/**: Source code to control the robotic arm (J4).
+- **data/**: Intended for storing saved games, move histories, scores, or logs.
+- **docs/**: Technical documentation, circuit diagrams, and design notes.
+- **python/**: Contains all Python code, now organized into:
+  - **camera/**: Handles token detection, image processing, and game logic.
+  - **minimax/**: Implements the Minimax AI algorithm and board management.
+- **LICENSE**: contains the full license terms governing the use, distribution, and attribution of this project.
+- **README.md**: This file, providing a general overview of the project.
 
 ## 🧠 Key Concepts
 
