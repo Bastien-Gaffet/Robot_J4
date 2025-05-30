@@ -33,6 +33,7 @@ At the heart of the decision-making process lies the **Minimax algorithm**, a cl
 6. The cycle continues with real-time board recognition until one player wins or the board is full.
 
 ## 📦 Repository Structure
+```plaintext
 /robot-j4/
 ├── minimax/ # Minimax algorithm and game logic
 ├── arduino/ # Arduino code to control the robotic arm
@@ -40,6 +41,7 @@ At the heart of the decision-making process lies the **Minimax algorithm**, a cl
 ├── data/ # Optional: saved data or gameplay logs
 ├── docs/ # Documentation, schematics, and diagrams
 └── README.md # Project overview
+```
 
 ## 🧠 Key Concepts
 
