@@ -33,15 +33,13 @@ At the heart of the decision-making process lies the **Minimax algorithm**, a cl
 6. The cycle continues with real-time board recognition until one player wins or the board is full.
 
 ## 📦 Repository Structure
-```plaintext
-/robot-j4/
-├── minimax/ # Minimax algorithm and game logic
-├── arduino/ # Arduino code to control the robotic arm
-├── interface/ # Python interface for input/output
-├── data/ # Optional: saved data or gameplay logs
-├── docs/ # Documentation, schematics, and diagrams
-└── README.md # Project overview
-```
+
+- **minimax/** : contains the implementation of the Minimax algorithm and related game logic for Connect Four.
+- **arduino/** : source code to control the robotic arm (J4).
+- **interface/** : Python scripts for user interaction and input/output management.
+- **data/** : optional folder to store saved games, move histories, scores, and logs.
+- **docs/** : technical documentation, circuit diagrams, and design notes.
+- **README.md** : this file, giving a general overview of the project.
 
 ## 🧠 Key Concepts
 
