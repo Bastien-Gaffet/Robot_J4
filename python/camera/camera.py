@@ -6,7 +6,7 @@ import pygame
 import sys
 import random
 from collections import Counter
-from minimax_fonctions import *
+from minimax.minimax_functions import *
 import serial.tools.list_ports
 import serial
 import time

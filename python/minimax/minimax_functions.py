@@ -6,7 +6,7 @@ import pygame
 import sys
 import serial.tools.list_ports
 import serial
-import camera
+from camera import camera
 import time
 
 # Constantes globales
