@@ -1,0 +1,23 @@
+# Robot J4 Project License
+
+All components of this project — including the 3D models of the robotic arm, technical documents, source code, images, and all other related content — are licensed under the following terms:
+
+## Main License
+
+**Creative Commons Attribution - NonCommercial - ShareAlike 4.0 International (CC BY-NC-SA 4.0)**  
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+### Attribution  
+Please cite this project as follows:  
+> This project was created by the Lycée Vaucanson Robot J4 Team (2025):  
+> Bastien Gaffet, Emma Coutelet, Kalvyn Martin, Erwan Rossignol, Gabriel Chevallier.
+
+---
+
+## Third-Party Resources
+
+This project is based on resources originally created by BCN3D Technologies, licensed under the MIT License.  
+© 2016 BCN3D Technologies —  
+https://github.com/BCN3D/BCN3D-Moveo/blob/master/LICENSE
+
+Please see the LICENSE file linked above for more details.
