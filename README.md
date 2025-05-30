@@ -23,7 +23,8 @@ This project was awarded the **national final winner** title at the French **Con
 - **Arduino** (motor control and robot commands)
 - **Serial communication (UART)** for computer-to-robot interaction
 - **Mechanical design** (custom robotic arm for token handling)
-- *(Optional – future upgrade)* **Computer vision** for automated board state recognition
+- **Computer vision** for automated board state recognition
+- - *(Optional – future upgrade)* **Miniaturization** using an arduino instead of a desktop or laptop computer
 
 ## 🚀 How It Works
 
