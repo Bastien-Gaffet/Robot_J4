@@ -28,7 +28,6 @@ logs/
 events.out.tfevents.*
 
 # PyTorch
-*.pth
 *.pt
 
 # === NODE.JS ===
