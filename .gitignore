@@ -58,7 +58,7 @@ serviceAccountKey.json
 *.code-workspace
 *.sublime-workspace
 *.sublime-project
-
+/.vs
 # === SYSTÈME / OS ===
 .DS_Store
 Thumbs.db
