@@ -22,6 +22,15 @@ This will launch TensorBoard and allow you to track the AI’s learning metrics 
 - The project is still under active development, and further improvements are planned.
 - The program should save previous versions in an archive folder, but this logic is not implemented correctly. It is possible that you will need to do it manually to avoid completely overwriting the old model.
 
----
+## Running the Connect Four Game or Testing the AI
 
-Feel free to report issues!
+To test the AI or simply play Connect Four games (against a human or AI opponent), you can run the following program:
+**play_connect4/puissance4_main.py**
+This script allows you to:
+
+- Play a full game of Connect Four
+- Choose between different opponent types (e.g. human, Minimax algorithm, random moves, or trained AI)
+- Test and evaluate AI behavior in a complete game loop
+
+This module is designed for both gameplay and experimentation with different AI strategies.
+---
