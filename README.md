@@ -39,6 +39,7 @@ At the heart of the decision-making process lies the **Minimax algorithm**, a cl
 - **interface/** : Python scripts for user interaction and input/output management.
 - **data/** : optional folder to store saved games, move histories, scores, and logs.
 - **docs/** : technical documentation, circuit diagrams, and design notes.
+- **LICENSE** : contains the full license terms governing the use, distribution, and attribution of this project.
 - **README.md** : this file, giving a general overview of the project.
 
 ## 🧠 Key Concepts
