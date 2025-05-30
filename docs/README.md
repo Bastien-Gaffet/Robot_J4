@@ -23,3 +23,7 @@ You can view the model we used as a base directly on Onshape at the following li
 ---
 
 > **Note:** We do **not** modify the files in this folder. Any mechanical changes or adaptations have been made exclusively in our Onshape workspace.
+
+## Project Report Overview
+
+The file **Cgenial_J4_2025_fr.pdf** is the project report written in French, dated March 16, 2025. This version was submitted for the project presentation at the Cgénial competition.
