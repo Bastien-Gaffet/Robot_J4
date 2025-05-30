@@ -1,0 +1,75 @@
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+.venv/
+
+# Caches, logs, bases de données temporaires
+*.log
+*.sqlite3
+*.db
+
+# Fichiers de tests
+.pytest_cache/
+.tox/
+.coverage
+
+# Jupyter notebook
+.ipynb_checkpoints/
+
+# TensorBoard logs
+runs/
+logs/
+events.out.tfevents.*
+
+# PyTorch
+*.pth
+*.pt
+
+# === NODE.JS ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json # (optionnel, si vous voulez l’exclure)
+
+# === FIREBASE / SÉCURITÉ ===
+# Clés d'API ou secrets
+*.env
+*.env.*
+firebase-key.json
+*.secret.json
+serviceAccountKey.json
+
+# === ARDUINO ===
+*.ino.*
+*.hex
+*.elf
+*.bin
+
+# === IDEs et éditeurs ===
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-workspace
+*.sublime-project
+
+# === SYSTÈME / OS ===
+.DS_Store
+Thumbs.db
+
+# === DIVERS ===
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# === BUILD / DIST ===
+dist/
+build/
+*.egg-info/
