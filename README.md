@@ -6,6 +6,8 @@
 
 At the heart of the decision-making process lies the **Minimax algorithm**, a classical strategy from **game theory** commonly used in two-player, turn-based games like chess or Connect Four. Robot J4 evaluates potential moves up to a certain depth and selects the most optimal action to either **win or block** the opponent.
 
+This project was awarded the **national final winner** title at the French **Concours Cgénial** and is currently being carried forward by our team for participation in the **EUCYS competition in Latvia**.
+
 ## 🎯 Objectives
 
 - Build a robotic arm capable of dropping game pieces into a real-world Connect Four board.
