@@ -424,7 +424,3 @@ def time_to_play(game_state):
 
     # Rafraîchir l'affichage une dernière fois
     pygame.display.update()
-
-# Lancer le jeu
-if __name__ == "__main__":
-    jouer()

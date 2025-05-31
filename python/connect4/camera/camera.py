@@ -8,7 +8,7 @@ import random
 from collections import Counter
 from minimax.minimax_functions import afficher_message, confirmer_coup_ia, placer_jeton, plateau_plein, time_to_play, verifier_coup_ia, verifier_victoire
 from arduino_serial.serial_connection import serial_obj
-from arduino_serial.arduino_connection import setup_arduino_connection, send_to_arduino
+from arduino_serial.arduino_connection import send_to_arduino
 from game_state import GameState
 from core import init_game
 
@@ -64,12 +64,13 @@ def detect_game_start(current_matrix, game_state):
             game_state.last_change_time = time.time()
                 
             if serial_obj is not None:
-                print("Serial connection successfully established")
                 send_to_arduino(serial_obj, game_state.joueur_courant + 7)
             else:
                 print("Arduino connection error - The game will continue without serial.")
 
             print("The first player is ", game_state.joueur_courant)
+            # The token pickup is initialized
+            send_to_arduino(serial_obj, 13)
 
             if game_state.joueur_courant == 1:
                 print("Movement initialized")
