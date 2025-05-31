@@ -6,73 +6,13 @@ import pygame
 import sys
 import random
 from collections import Counter
-from minimax.minimax_functions import *
-import serial.tools.list_ports
-import serial
+from minimax.minimax_functions import jouer, time_to_play
+from arduino_connection.serial_connection import serial_obj
+from arduino_connection.arduino_connection import setup_arduino_connection, send_to_arduino
 import time
+from game_state import GameState
 
-def detect_arduino():
-    """
-    Detect Arduino port with improved error handling and multiple identification methods.
-
-    Returns:
-    - Port name if Arduino is found
-    - None if no Arduino is detected
-    """
-    ports = list(serial.tools.list_ports.comports())
-
-    # Extended port identification methods
-    arduino_keywords = [
-        "Arduino", "CH340", "USB Serial",
-        "Silicon Labs", "CP210x", "FTDI"
-    ]
-
-    for port in ports:
-        # Check for keywords in description or hardware ID
-        for keyword in arduino_keywords:
-            if (keyword.lower() in str(port.description).lower() or
-                keyword.lower() in str(port.hwid).lower()):
-                return port.device
-
-    return None
-
-def setup_arduino_connection():
-    """
-    Set up Arduino connection with robust error handling.
-
-    Returns:
-    - SerialObj if connection successful
-    - None if connection fails
-    """
-    arduino_port = detect_arduino()
-
-    if not arduino_port:
-        print("No Arduino detected.")
-        return None
-
-    try:
-        SerialObj = serial.Serial(
-            port=arduino_port,
-            baudrate=9600,
-            bytesize=8,
-            parity='N',
-            stopbits=1,
-            timeout=1
-        )
-        print(f"Arduino connected successfully on {arduino_port}")
-        return SerialObj
-
-    except serial.SerialException:
-        # Silently fail and return None without error messages
-        return None
-    except Exception:
-        # Silently fail for other exceptions too
-        return None
-
-# Global variable to store serial connection
-SerialObj = setup_arduino_connection()
-
-# Définition des couleurs HSV avec des seuils améliorés
+# Definition of HSV colors
 LOWER_RED1 = np.array([0, 100, 80])
 UPPER_RED1 = np.array([10, 255, 255])
 LOWER_RED2 = np.array([170, 100, 80])
@@ -89,50 +29,31 @@ UPPER_YELLOW3 = np.array([36, 255, 200])
 LOWER_YELLOW4 = np.array([25, 200, 110])
 UPPER_YELLOW4 = np.array([33, 255, 200])
 
-# Constantes pour le traitement d'image
+# Constants for image processing
 KERNEL = np.ones((7, 7), np.uint8)
 
-# Paramètres du plateau
+# Board settings
 ROWS, COLS = 6, 7
 ROI_X, ROI_Y, ROI_W, ROI_H = 50, 50, 500, 400
 MIN_AREA = 300
 MAX_AREA = 3000
 MIN_CIRCULARITY = 0.6
 
-# Paramètres de stabilisation
+# Stabilization settings
 BUFFER_SIZE = 20
 DETECTION_THRESHOLD = 0.6
-SETTLING_TIME = 1.5  # Temps d'attente en secondes après un changement
-GRID_UPDATE_INTERVAL = 0.5  # Intervalle en secondes pour mise à jour
+SETTLING_TIME = 1.5  # Waiting time in seconds after a change
+GRID_UPDATE_INTERVAL = 0.5  # Update interval in seconds
 
-# État global du jeu - variables nécessairement globales
+# Global game state – necessarily global variables
 last_red_move_matrix = None
 last_yellow_move_matrix = None
 grid_buffer = []
 
-class GameState:
-    def __init__(self):
-        self.initialization_phase = True
-        self.last_stable_grid = None
-        self.last_stable_matrix = None
-        self.current_matrix = None
-        self.last_print_time = 0
-        self.last_stabilization_time = 0
-        self.last_grid_update_time = 0
-        self.stabilized_matrix = None
-        self.grid_changed = False
-        self.last_change_time = 0
-        # Variables de jeu
-        self.joueur_courant = 1  # Initialement, le joueur 1 commence
-        self.ia_a_joue = False
-        self.en_attente_detection = False
-        self.dernier_coup_ia = None
-        self.game_over = False
-
 def update_from_camera(current_matrix, previous_matrix, game_state):
-    global SerialObj
-    """Met à jour le plateau avec les données de la caméra et gère la logique du jeu."""
-    # Phase d'initialisation
+    global serial_obj
+    #Updates the board with camera data and handles the game logic.
+    # Initialization phase
     if game_state.initialization_phase:
         if all(all(cell == 0 for cell in row) for row in current_matrix):
             print("Initialization successful - empty grid confirmed")
@@ -142,22 +63,23 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
             print("---------------------")
             game_state.last_stable_matrix = [row[:] for row in current_matrix]
             game_state.last_change_time = time.time()
-
-            if camera.SerialObj is not None:
-                print("Connexion série établie avec succès")
-                camera.SerialObj.write(f"{game_state.joueur_courant + 7}\n".encode())
+                
+            if serial_obj is not None:
+                print("Serial connection successfully established")
+                send_to_arduino(serial_obj, game_state.joueur_courant + 7)
             else:
-                print("Erreur de connexion Arduino.")
+                print("Arduino connection error.")
+                print("Unable to send the data, no serial connection established.")
+                print("The game will continue without serial communication.")
 
-            if hasattr(camera, 'SerialObj') and camera.SerialObj is not None:
-                print("le premier joueur est ", game_state.joueur_courant)
-                camera.SerialObj.write(f"{game_state.joueur_courant + 7}\n".encode())
+            send_to_arduino(serial_obj, game_state.joueur_courant + 7)
+            print("The first player is ", game_state.joueur_courant)
 
-            if hasattr(camera, 'SerialObj') and game_state.joueur_courant == 1:
-                print("mouvement initialisé")
-                camera.SerialObj.write(f"12\n".encode())
+            if game_state.joueur_courant == 1:
+                print("Movement initialized")
+                send_to_arduino(serial_obj, 12)
 
-                # Si l'IA commence, faire jouer son premier coup
+                # If the AI starts, make its first move
                 if game_state.joueur_courant == 1:
                     time_to_play(game_state)
 
@@ -166,91 +88,89 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
             print("Waiting for empty grid to start game...")
         return False
 
-    # Vérifier si le mouvement est valide selon les règles du jeu
+    # Check if the move is valid according to the game rules
     is_valid, player, column = is_valid_game_move(current_matrix, previous_matrix, game_state)
 
     if not is_valid:
         return False
 
-    # Si en attente de détection d'un coup IA et que c'est bien l'IA qui a joué
+    # If waiting for AI move detection and the AI has indeed played
     if game_state.en_attente_detection and player == 1:
         confirmer_coup_ia(game_state)
-        print(f"Coup de l'IA en colonne {column + 1} détecté")
+        print(f"AI move detected in column {column + 1}")
 
-    # Mettre à jour l'affichage de pygame
+    # Update the Pygame display
     ligne = placer_jeton(column, player)
     pygame.display.update()
 
-    # Vérifier s'il y a victoire
+    # Check if there is a victory
     if verifier_victoire(player):
         game_state.game_over = True
-        message = "Félicitations! Vous avez gagné!" if player == 2 else "L'ordinateur a gagné!"
+        message = "Congratulations! You won!" if player == 2 else "The computer won!"
         afficher_message(message)
-        if hasattr(sys.modules[__name__], 'SerialObj') and player == 2:
-            camera.SerialObj.write(f"22\n".encode())
-        else:
-            camera.SerialObj.write(f"21\n".encode())
+        message = 22 if player == 2 else 21
+        send_to_arduino(serial_obj, message)
         pygame.time.delay(3000)
     elif plateau_plein():
         game_state.game_over = True
-        afficher_message("Match nul!")
-        camera.SerialObj.write(f"20\n".encode())
+        afficher_message("Draw!")
+        send_to_arduino(serial_obj, 20)
         pygame.time.delay(3000)
     else:
-        # Alternance entre les joueurs (1 → 2, 2 → 1)
+        # Switch between players (1 → 2, 2 → 1)
         game_state.joueur_courant = 3 - player
-        print(f"Tour du joueur {game_state.joueur_courant}")
+        print(f"Player’s turn {game_state.joueur_courant}")
 
 
-        if hasattr(sys.modules[__name__], 'SerialObj'):
-            print(f"Envoi au port série: joueur {game_state.joueur_courant + 7}")
-            camera.SerialObj.write(f"{game_state.joueur_courant + 7}\n".encode())
+        if serial_obj is not None:
+            print(f"Send to serial port: player {game_state.joueur_courant + 7}")
+            send_to_arduino(serial_obj, game_state.joueur_courant + 7)
         if game_state.joueur_courant == 1:
-            camera.SerialObj.write(f"12\n".encode())
+            send_to_arduino(serial_obj, 12)
         else:
-            print("impossible d'envoyer la donnée")
+            print("Unable to send the data")
 
-        # Rafraîchir l'affichage avant de continuer
+        # Refresh the display before continuing
         pygame.display.update()
 
-        # Si c'est au tour de l'IA, faire jouer l'IA
+        # If it's the AI's turn, make the AI play
         if not game_state.game_over and game_state.joueur_courant == 1:
             time_to_play(game_state)
 
     return True
 
 def main():
-    global SerialObj
-    """Fonction principale qui intègre les deux programmes"""
-    # Initialiser l'état du jeu
+    global serial_obj
+    #Main function that integrates both programs
+    # Initialize the game state
     game_state = GameState()
 
-    # Chargement de la capture vidéo
+    # Loading video capture
     cap = cv2.VideoCapture(0)#"http://192.168.68.56:4747/video"
     if not cap.isOpened():
-        print("Erreur: Impossible d'ouvrir la caméra. Vérifiez l'URL ou la connexion.")
+        print("Error: Unable to open the camera. Please check the URL or the connection.")
         return
 
-    # Initialiser le jeu en passant l'état du jeu
+    # Initialize the game by passing the game state
     game_state = jouer(game_state)
 
-    # Initialiser le buffer de grille
+    # Initialize the grid buffer
     global grid_buffer
     grid_buffer = []
 
-    # Attendre que la caméra s'initialise correctement
-    print("Initialisation de la caméra...")
-    for _ in range(10):  # Capturer quelques images pour stabiliser la caméra
+    # Wait for the camera to initialize properly
+    print("Initializing the camera...")
+    for _ in range(10):  # Capture a few frames to stabilize the camera
         ret, _ = cap.read()
         if not ret:
-            print("Erreur: Impossible de lire une image de la caméra.")
+            print("Error: Unable to read a frame from the camera.")
             return
         time.sleep(0.1)
-    print("Caméra initialisée!")
+    print("Camera initialized!")
 
-    # Boucle principale
+    # Main loop
     while True:
-        # Gérer les événements Pygame pour éviter que l'interface ne paraisse bloquée
+        # Handle Pygame events to prevent the interface from appearing frozen
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 cap.release()
@@ -260,16 +180,16 @@ def main():
 
         ret, frame = cap.read()
         if not ret:
-            print("Erreur: Impossible de lire une image de la caméra.")
+            print("Error: Unable to read a frame from the camera.")
             break
 
-        # Inverser l'image horizontalement
+        # Flip the image horizontally
         frame = cv2.flip(frame, 1)
 
-        # Détection des jetons à chaque frame
+        # Token detection every frame
         current_grid = detect_tokens(frame)
 
-        # Mise à jour du buffer à chaque frame
+        # Buffer update every frame
         grid_buffer.append(current_grid)
         if len(grid_buffer) > BUFFER_SIZE:
             grid_buffer.pop(0)
@@ -277,61 +197,61 @@ def main():
         current_time = time.time()
         game_state.grid_changed = False
 
-        # Stabilisation et conversion en matrice seulement une fois par intervalle
+        # Stabilization and conversion to matrix only once per interval
         if current_time - game_state.last_grid_update_time >= GRID_UPDATE_INTERVAL:
             if len(grid_buffer) >= BUFFER_SIZE // 2:
                 stable_grid = stabilize_grid(current_grid, game_state)
                 current_matrix = grid_to_matrix(stable_grid)
 
-                # Vérifier que la structure physique de la grille est valide
+                # Check that the physical structure of the grid is valid
                 structure_valid = game_state.last_stable_matrix is None or is_valid_move(game_state.last_stable_matrix, current_matrix)
 
                 if structure_valid:
-                    # Si un changement est détecté et que le temps de stabilisation est passé
+                    # If a change is detected and the stabilization time has passed
                     if (game_state.last_stable_matrix is None or
                         matrices_are_different(current_matrix, game_state.last_stable_matrix)) and \
                     (current_time - game_state.last_change_time >= SETTLING_TIME):
 
-                        # Tenter de mettre à jour le jeu avec cette nouvelle grille
+                        # Attempt to update the game with this new grid
                         game_updated = update_from_camera(current_matrix, game_state.last_stable_matrix, game_state)
 
-                        # Seulement si le jeu a été mis à jour avec succès, on met à jour la matrice stable
+                        # Only if the game was successfully updated, update the stable matrix
                         if game_updated:
                             game_state.grid_changed = True
                             game_state.current_matrix = current_matrix
 
-                            # Mettre à jour les matrices spécifiques aux joueurs
+                            # Update the player-specific matrices
                             update_player_matrices(current_matrix, game_state.last_stable_matrix)
 
-                            # Deep copy pour éviter les références partagées
+                            # Deep copy to avoid shared references
                             game_state.last_stable_matrix = [row[:] for row in current_matrix]
                             game_state.last_change_time = current_time
 
-                            # Affichage de la nouvelle grille validée
-                            print("Nouvelle grille détectée et validée:")
+                            # Display of the newly validated grid
+                            print("New grid detected and validated:")
                             for row in current_matrix:
                                 print(row)
                             print("---------------------")
 
                 game_state.last_grid_update_time = current_time
 
-        # Utiliser la dernière grille stable pour l'affichage
+        # Use the latest stable grid for display
         display_grid = game_state.last_stable_grid if game_state.last_stable_grid is not None else current_grid
         camera_overlay = overlay_on_camera(frame, display_grid)
 
-        # Afficher le statut actuel
-        status_text = "Grille modifiée!" if game_state.grid_changed else "Grille stable"
+        # Display the current status
+        status_text = "Grid modified!" if game_state.grid_changed else "Stable grid"
         status_color = (0, 0, 255) if game_state.grid_changed else (0, 255, 0)
         cv2.putText(camera_overlay, status_text,
                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
 
-        # Afficher le temps restant jusqu'à la prochaine mise à jour
+        # Display the remaining time until the next update
         time_to_next = max(0, GRID_UPDATE_INTERVAL - (current_time - game_state.last_grid_update_time))
-        cv2.putText(camera_overlay, f"Prochaine mise a jour: {time_to_next:.1f}s",
+        cv2.putText(camera_overlay, f"Next update : {time_to_next:.1f}s",
                     (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-        # Afficher le joueur courant
-        player_text = f"Tour: {'IA (Rouge)' if game_state.joueur_courant == 1 else 'Joueur (Jaune)'}"
+        # Display the current player
+        player_text = f"Turn: {'AI (Red)' if game_state.joueur_courant == 1 else 'Player (Yellow)'}"
         cv2.putText(camera_overlay, player_text,
                     (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255) if game_state.joueur_courant == 1 else (0, 255, 255), 2)
 
@@ -341,18 +261,24 @@ def main():
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
-        elif key == ord('r'):  # Réinitialiser le jeu
-            print("Réinitialisation du jeu...")
-            game_state = jouer(game_state)
+        elif key == ord('r'):  # Reset the game
+            print("Reset the game")
+            game_state = jouer()
             grid_buffer = []
+            last_red_move_matrix = None
+            last_yellow_move_matrix = None
+            # Immediately trigger the AI's turn if it starts
+            if game_state.joueur_courant == 1:
+                time_to_play(game_state)
 
-    # Libérer les ressources
+
+    # Release the resources
     cap.release()
     cv2.destroyAllWindows()
     pygame.quit()
 
 def detect_circles(frame, lower, upper):
-    """Détecte les cercles d'une couleur spécifique dans l'image"""
+    # Detects circles of a specific color in the image
     roi = frame[ROI_Y:ROI_Y + ROI_H, ROI_X:ROI_X + ROI_W]
     roi = cv2.GaussianBlur(roi, (5, 5), 0)
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
@@ -373,7 +299,7 @@ def detect_circles(frame, lower, upper):
     return centers, mask
 
 def detect_tokens(frame):
-    """Détecte tous les jetons rouges et jaunes dans l'image"""
+    # Detect all the red and yellow tokens in the image
     red_centers1, _ = detect_circles(frame, LOWER_RED1, UPPER_RED1)
     red_centers2, _ = detect_circles(frame, LOWER_RED2, UPPER_RED2)
     red_centers = red_centers1 + red_centers2
@@ -384,24 +310,24 @@ def detect_tokens(frame):
     yellow_centers4, _ = detect_circles(frame, LOWER_YELLOW4, UPPER_YELLOW4)
     yellow_centers = yellow_centers1 + yellow_centers2 + yellow_centers3 + yellow_centers4
 
-    # Création d'une grille vide
+    # Creating an empty grid
     grid = {}
 
-    # Définir les dimensions de la cellule
+    # Define the cell dimensions
     cell_width = ROI_W / COLS
     cell_height = ROI_H / ROWS
 
-    # Traiter chaque jeton rouge
+    # Process each red token
     for cx, cy in red_centers:
-        # Convertir les coordonnées en indices de grille
+        # Convert the coordinates to grid indices
         col = int(cx / cell_width)
         row = int(cy / cell_height)
 
-        # S'assurer que les indices sont dans les limites
+        # Ensure the indices are within bounds
         if 0 <= row < ROWS and 0 <= col < COLS:
             grid[(row, col)] = "red"
 
-    # Traiter chaque jeton jaune
+    # Process each yellow token
     for cx, cy in yellow_centers:
         col = int(cx / cell_width)
         row = int(cy / cell_height)
@@ -411,17 +337,17 @@ def detect_tokens(frame):
     return grid
 
 def overlay_on_camera(frame, grid):
-    """Superpose la grille détectée sur l'image de la caméra"""
+    # Overlay the detected grid on the camera image
     overlay = frame.copy()
 
-    # Dessiner la grille pour visualisation
+    # Draw the grid for visualization
     for row in range(ROWS):
         for col in range(COLS):
-            # Calculer le centre de chaque cellule
+            # Calculate the center of each cell
             cx = ROI_X + int((col + 0.5) * (ROI_W / COLS))
             cy = ROI_Y + int((row + 0.5) * (ROI_H / ROWS))
 
-            # Dessiner le cadre de la cellule
+            # Draw the cell frame
             cell_w = int(ROI_W / COLS)
             cell_h = int(ROI_H / ROWS)
             cv2.rectangle(overlay,
@@ -429,72 +355,72 @@ def overlay_on_camera(frame, grid):
                          (ROI_X + (col + 1) * cell_w, ROI_Y + (row + 1) * cell_h),
                          (100, 100, 100), 1)
 
-            # Si un jeton est présent dans cette cellule, le dessiner
+            # If a token is present in this cell, draw it
             if (row, col) in grid:
                 color = grid[(row, col)]
                 color_bgr = (0, 0, 255) if color == "red" else (0, 255, 255) if color == "yellow" else (255, 255, 255)
                 cv2.circle(overlay, (cx, cy), int(min(cell_w, cell_h) * 0.4), color_bgr, -1)
 
-    # Dessiner le cadre ROI
+    # Draw the frame ROI
     cv2.rectangle(overlay, (ROI_X, ROI_Y), (ROI_X + ROI_W, ROI_Y + ROI_H), (0, 255, 0), 2)
 
     return overlay
 
 def stabilize_grid(current_grid, game_state):
-    """Stabilise la détection de la grille en utilisant un buffer temporel"""
+    # Stabilizes the grid by analyzing the buffer of grids and applying a majority vote
     global grid_buffer
 
-    # Si le buffer n'est pas encore rempli, utiliser la grille actuelle
+    # If the buffer is not full, return the current grid
     if len(grid_buffer) < BUFFER_SIZE:
         return current_grid
 
-    # Créer une grille stabilisée
+    # Create a stabilized grid
     stable_grid = {}
     all_positions = set()
 
-    # Collecter toutes les positions détectées dans le buffer
+    # Collect all positions from the grid buffer
     for grid in grid_buffer:
         all_positions.update(grid.keys())
 
-    # Pour chaque position détectée
+    # Iterate through all positions in the buffer
     for pos in all_positions:
-        # Collecter toutes les couleurs détectées à cette position
+        # Collect the colors from all grids in the buffer for this position
         colors = [grid.get(pos, None) for grid in grid_buffer]
-        colors = [c for c in colors if c is not None]  # Éliminer les None
+        colors = [c for c in colors if c is not None]  # Remove None values
 
-        # Si aucune couleur n'a été détectée, passer à la position suivante
+        # If no color is detected for this position, skip it
         if not colors:
             continue
 
-        # Compter les occurrences de chaque couleur
+        # Count the occurrences of each color
         color_counts = Counter(colors)
         most_common_color, count = color_counts.most_common(1)[0]
 
-        # Si la couleur la plus fréquente dépasse le seuil, l'utiliser
-        if count / len(grid_buffer) >= DETECTION_THRESHOLD:  # Utiliser le buffer complet comme dénominateur
+        # If the most common color appears in at least DETECTION_THRESHOLD of the grids, keep it
+        if count / len(grid_buffer) >= DETECTION_THRESHOLD:  # Use the full buffer as the denominator
             stable_grid[pos] = most_common_color
 
-    # Vérifier que la grille est valide selon les règles de gravité
+    # Check that the grid is valid according to the rules
     if not is_valid_grid(stable_grid):
-        print("Grille non valide, ignorée")
-        # Conserver l'ancienne grille si la nouvelle n'est pas valide
+        print("Invalid grid, ignored")
+        # Keep the previous grid if the new one is not valid
         if game_state.last_stable_grid is not None:
             return game_state.last_stable_grid
 
-    # Mettre à jour le timestamp de stabilisation
+    # Update the stabilization timestamp
     game_state.last_stabilization_time = time.time()
     game_state.last_stable_grid = stable_grid
 
     return stable_grid
 
 def grid_to_matrix(grid):
-    """Convertit la représentation en dictionnaire de la grille en matrice 2D"""
-    # Créer une matrice vide remplie de zéros
+    # Convert the grid representation from a dictionary to a 2D matrix
+    # Create an empty matrix filled with zeros
     matrix = [[0 for _ in range(COLS)] for _ in range(ROWS)]
 
-    # Remplir la matrice avec les valeurs du dictionnaire grid
+    # Fill the matrix with the values from the grid dictionary
     for (row, col), color in grid.items():
-        if 0 <= row < ROWS and 0 <= col < COLS:  # Vérifier les limites
+        if 0 <= row < ROWS and 0 <= col < COLS:  # Check the boundaries
             if color == "red":
                 matrix[row][col] = 1
             elif color == "yellow":
@@ -503,8 +429,8 @@ def grid_to_matrix(grid):
     return matrix
 
 def is_valid_grid(grid):
-    """Vérifie que la grille respecte les règles de gravité du Puissance 4"""
-    # Convertir en matrice pour faciliter la vérification
+    # Check that the grid complies with the Connect Four gravity rules
+    # Convert to a matrix to facilitate verification
     matrix = [[0 for _ in range(COLS)] for _ in range(ROWS)]
 
     for (row, col), color in grid.items():
@@ -514,56 +440,56 @@ def is_valid_grid(grid):
             elif color == "yellow":
                 matrix[row][col] = 2
 
-    # Vérifier les règles de gravité
+    # Verify the gravity rules
     for col in range(COLS):
-        # Pour chaque colonne, on vérifie de bas en haut
+        # For each column, check from bottom to top
         found_empty = False
-        for row in range(ROWS-1, -1, -1):  # De bas en haut
-            if matrix[row][col] == 0:  # Case vide
+        for row in range(ROWS-1, -1, -1):  # From bottom to top
+            if matrix[row][col] == 0:  # Empty cell
                 found_empty = True
-            elif found_empty:  # Si on trouve un jeton après une case vide (violation de gravité)
+            elif found_empty:  # If a token is found after an empty cell (gravity violation)
                 return False
 
     return True
 
 def is_valid_game_move(current_matrix, previous_matrix, game_state):
-    """Vérifie si le mouvement détecté est valide selon les règles du jeu."""
-    # Déterminer joueur et colonne du dernier coup
+    # Check if the detected move is valid according to the game rules.
+    # Determine the player and column of the last move
     last_player = get_last_player(current_matrix, previous_matrix)
     last_move = get_last_move_column(current_matrix, previous_matrix)
 
-    # Si aucun joueur n'est détecté, pas de mouvement valide
+    # If no player is detected, no valid move
     if last_player is None or last_move == -1:
         return False, None, None
 
-    # Convertir last_player en entier
+    # Convert last_player to an integer
     player_num = 1 if last_player == "red" else 2 if last_player == "yellow" else None
 
-    # Vérifier si c'est bien le tour de ce joueur
+    # Check if it is indeed this player’s turn
     if player_num != game_state.joueur_courant:
-        print(f"Détection ignorée: c'est au tour du joueur {game_state.joueur_courant}, mais {player_num} a été détecté")
+        print(f"Detection ignored: it is the player's turn {game_state.joueur_courant}, but {player_num} has been detected")
         return False, None, None
 
-    # Vérification spéciale pour le coup de l'IA
+    # Special check for the AI's move
     if game_state.en_attente_detection and player_num == 1:
         if not verifier_coup_ia(last_move, game_state):
-            print(f"Coup détecté en colonne {last_move + 1} ne correspond pas au coup de l'IA attendu")
+            print(f"Move detected in column {last_move + 1} does not match the expected AI move")
             return False, None, None
 
     return True, player_num, last_move
 
 def count_tokens(matrix):
-    """Compte le nombre total de jetons dans la matrice"""
+    # Count the total number of tokens in the matrix
     count = 0
     for row in range(ROWS):
         for col in range(COLS):
-            if matrix[row][col] > 0:  # Un jeton est présent (1 pour rouge, 2 pour jaune)
+            if matrix[row][col] > 0:  # A token is present (1 for red, 2 for yellow)
                 count += 1
     return count
 
 def is_valid_move(previous_matrix, current_matrix):
     if previous_matrix is None:
-        # Si c'est la première grille, elle doit être vide
+        # If it’s the first grid, it must be empty
         return all(all(cell == 0 for cell in row) for row in current_matrix)
 
     previous_count = count_tokens(previous_matrix)
@@ -572,100 +498,100 @@ def is_valid_move(previous_matrix, current_matrix):
     return current_count == previous_count + 1
 
 def matrices_are_different(matrix1, matrix2):
-    """Compare deux matrices et retourne True si elles sont différentes"""
+    # Compare two matrices and return True if they are different
     if matrix1 is None or matrix2 is None:
-        return True  # Si l'une des matrices est None, considérer comme différentes
+        return True  # If either of the matrices is None, consider them different
 
     for i in range(len(matrix1)):
         for j in range(len(matrix1[i])):
             if matrix1[i][j] != matrix2[i][j]:
-                return True  # Différence trouvée
+                return True  # Difference found
 
-    return False  # Aucune différence trouvée
+    return False  # No difference found
 
 def get_last_move_column(current_matrix, previous_matrix):
-    """Détermine la colonne du dernier coup joué en comparant deux matrices consécutives"""
-    # Si une des matrices est None, impossible de déterminer le dernier coup
+    # Determine the column of the last move played by comparing two consecutive matrices
+    # If either matrix is None, it is impossible to determine the last move
     if current_matrix is None or previous_matrix is None:
         return -1
 
-    # Parcourir chaque colonne
+    # Iterate through each column
     for col in range(COLS):
-        # Trouver le premier jeton différent dans cette colonne (de bas en haut)
+        # Find the first differing token in this column (from bottom to top)
         for row in range(ROWS-1, -1, -1):
-            # Si on trouve un jeton dans la matrice actuelle qui n'était pas là avant
+            # If a token is found in the current matrix that wasn't there before
             if current_matrix[row][col] != 0 and previous_matrix[row][col] == 0:
                 return col
 
-    # Aucun nouveau jeton trouvé
+    # No new token found
     return -1
 
 def get_last_player(current_matrix, previous_matrix):
-    """Détermine quel joueur a joué le dernier coup"""
-    # Si une des matrices est None, impossible de déterminer le dernier joueur
+    # Determine which player made the last move
+    # If either matrix is None, it is impossible to determine the last player
     if current_matrix is None or previous_matrix is None:
         return None
 
-    # Parcourir la grille pour trouver le nouveau jeton
+    # Iterate through each column
     for row in range(ROWS):
         for col in range(COLS):
-            # Si on trouve un jeton dans la matrice actuelle qui n'était pas là avant
+            # If a token is found in the current matrix that wasn’t there before
             if previous_matrix[row][col] == 0 and current_matrix[row][col] != 0:
-                # Identifier le joueur en fonction de la valeur
+                # Identify the player based on the value
                 if current_matrix[row][col] == 1:
                     return "red"
                 elif current_matrix[row][col] == 2:
                     return "yellow"
 
-    # Aucun nouveau jeton trouvé
+    # No new token found
     return None
 
 def is_empty_matrix(matrix):
-    """Vérifie si la matrice est vide (aucun jeton n'est placé)"""
+    # Check if the matrix is empty (no tokens placed)
     return all(all(cell == 0 for cell in row) for row in matrix)
 
 def update_player_matrices(current_matrix, previous_matrix):
-    """Met à jour les matrices de chaque joueur en fonction du changement détecté"""
+    # Update each player's matrices based on the detected change
     global last_red_move_matrix, last_yellow_move_matrix
 
-    # Si pas de matrice précédente, impossible de déterminer le dernier joueur
+    # If there is no previous matrix, it is impossible to determine the last player
     if previous_matrix is None:
         return
 
-    # Trouver le nouveau jeton ajouté
+    # Find the newly added token
     for row in range(ROWS):
         for col in range(COLS):
-            # Si un jeton a été ajouté
+            # If a token has been added
             if previous_matrix[row][col] == 0 and current_matrix[row][col] != 0:
-                # Vérifier la couleur du jeton ajouté
-                if current_matrix[row][col] == 1:  # Rouge
-                    # Copier profondément la matrice actuelle
+                # Check the color of the added token
+                if current_matrix[row][col] == 1:  # Red
+                    # Copy the current matrix
                     last_red_move_matrix = [row[:] for row in current_matrix]
                 elif current_matrix[row][col] == 2:  # Jaune
-                    # Copier profondément la matrice actuelle
+                    # copy the current matrix
                     last_yellow_move_matrix = [row[:] for row in current_matrix]
                 return
 
 def get_last_red_move_grid():
-    """Renvoie la grille telle qu'elle était après le dernier coup des rouges"""
+    # Return the grid as it was after the last move by the red player
     global last_red_move_matrix
     return last_red_move_matrix
 
 def get_last_yellow_move_grid():
-    """Renvoie la grille telle qu'elle était après le dernier coup des jaunes"""
+    # Return the grid as it was after the last move by the yellow player
     global last_yellow_move_matrix
     return last_yellow_move_matrix
 
 def mouse_callback(event, x, y, flags, param, frame):
-    """Callback pour les clics de souris - utile pour le débogage des couleurs"""
+    # Callback for mouse clicks – useful for debugging colors
     if event == cv2.EVENT_LBUTTONDOWN:
         if ROI_X <= x <= ROI_X + ROI_W and ROI_Y <= y <= ROI_Y + ROI_H:
             roi_x, roi_y = x - ROI_X, y - ROI_Y
             roi = frame[ROI_Y:ROI_Y + ROI_H, ROI_X:ROI_X + ROI_W]
             hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
             h, s, v = hsv[roi_y, roi_x]
-            print(f"HSV à ce point: H={h}, S={s}, V={v}")
+            print(f"HSV at this point: H={h}, S={s}, V={v}")
 
-# Lancer le jeu
+# Start the game
 if __name__ == "__main__":
     main()

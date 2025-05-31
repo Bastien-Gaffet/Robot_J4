@@ -4,10 +4,10 @@ import time
 import math
 import pygame
 import sys
-import serial.tools.list_ports
-import serial
-from camera import camera
+from arduino_connection.arduino_connection import setup_arduino_connection, send_to_arduino
+from arduino_connection.serial_connection import serial_obj
 import time
+from game_state import GameState
 
 # Constantes globales
 TAILLE_CASE = 80
@@ -333,6 +333,10 @@ def afficher_message(message):
     pygame.display.update()
 
 def tour_ordinateur(game_state):
+    print("DEBUG: entering tour_ordinateur()")
+    print("  ia_a_joue:", game_state.ia_a_joue)
+    print("  en_attente_detection:", game_state.en_attente_detection)
+
     """Utilise l'algorithme Minimax pour que l'ordinateur joue"""
     # Si l'IA a déjà joué et on attend la détection, ne pas recalculer
     if game_state.ia_a_joue and game_state.en_attente_detection:
@@ -369,13 +373,12 @@ def tour_ordinateur(game_state):
     afficher_message(f"L'ordinateur a choisi la colonne {colonne + 1} (en {elapsed_time:.2f} secondes)")
     entree = colonne + 1
 
-    # Vérifier que SerialObj existe avant d'envoyer la commande
-    if hasattr(camera, 'SerialObj') and camera.SerialObj is not None:
+    # Vérifier que serial_obj existe avant d'envoyer la commande
+    if serial_obj is not None:
         print("colonne ", entree)
-        camera.SerialObj.write(f"{entree}\n".encode())
+        send_to_arduino(serial_obj, entree)
     else:
         print(f"Communication série non disponible, IA joue virtuellement en colonne {colonne + 1}")
-    print("test")
     pygame.time.delay(500)
 
     # Marquer que l'IA a joué et on attend la détection
@@ -415,6 +418,7 @@ def time_to_play(game_state):
         pygame.time.delay(100)
         # Faire jouer l'IA
         tour_ordinateur(game_state)
+        print("")
 
     # Tour du joueur humain (joueur 2 = jaune)
     elif game_state.joueur_courant == 2:
@@ -455,22 +459,6 @@ def jouer(game_state=None):
     afficher_plateau()
 
     return game_state
-
-"""# Fin de la partie
-afficher_message("Fin de la partie! Cliquez pour rejouer (ou fermez la fenêtre pour quitter)")
-pygame.display.update()
-
-# Attendre que le joueur décide de rejouer ou quitter
-attente_decision = True
-while attente_decision:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            attente_decision = False
-            pygame.quit()
-            jouer()  # Relancer une nouvelle partie"""
 
 # Lancer le jeu
 if __name__ == "__main__":
