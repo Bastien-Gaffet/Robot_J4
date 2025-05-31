@@ -6,7 +6,7 @@ import pygame
 import sys
 import random
 from collections import Counter
-from minimax.minimax_functions import time_to_play
+from minimax.minimax_functions import afficher_message, confirmer_coup_ia, placer_jeton, plateau_plein, time_to_play, verifier_coup_ia, verifier_victoire
 from arduino_serial.serial_connection import serial_obj
 from arduino_serial.arduino_connection import setup_arduino_connection, send_to_arduino
 from game_state import GameState
