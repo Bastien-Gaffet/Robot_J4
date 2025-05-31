@@ -6,11 +6,11 @@ import pygame
 import sys
 import random
 from collections import Counter
-from minimax.minimax_functions import jouer, time_to_play
-from arduino_connection.serial_connection import serial_obj
-from arduino_connection.arduino_connection import setup_arduino_connection, send_to_arduino
-import time
+from minimax.minimax_functions import time_to_play
+from arduino_serial.serial_connection import serial_obj
+from arduino_serial.arduino_connection import setup_arduino_connection, send_to_arduino
 from game_state import GameState
+from core import init_game
 
 # Definition of HSV colors
 LOWER_RED1 = np.array([0, 100, 80])
@@ -46,13 +46,12 @@ SETTLING_TIME = 1.5  # Waiting time in seconds after a change
 GRID_UPDATE_INTERVAL = 0.5  # Update interval in seconds
 
 # Global game state – necessarily global variables
-last_red_move_matrix = None
-last_yellow_move_matrix = None
-grid_buffer = []
+#last_red_move_matrix = None
+#last_yellow_move_matrix = None
+#grid_buffer = []
 
-def update_from_camera(current_matrix, previous_matrix, game_state):
-    global serial_obj
-    #Updates the board with camera data and handles the game logic.
+
+def detect_game_start(current_matrix, game_state):
     # Initialization phase
     if game_state.initialization_phase:
         if all(all(cell == 0 for cell in row) for row in current_matrix):
@@ -68,11 +67,8 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
                 print("Serial connection successfully established")
                 send_to_arduino(serial_obj, game_state.joueur_courant + 7)
             else:
-                print("Arduino connection error.")
-                print("Unable to send the data, no serial connection established.")
-                print("The game will continue without serial communication.")
+                print("Arduino connection error - The game will continue without serial.")
 
-            send_to_arduino(serial_obj, game_state.joueur_courant + 7)
             print("The first player is ", game_state.joueur_courant)
 
             if game_state.joueur_courant == 1:
@@ -84,25 +80,12 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
                     time_to_play(game_state)
 
             game_state.initialization_phase = False
+            return True
         else:
             print("Waiting for empty grid to start game...")
         return False
 
-    # Check if the move is valid according to the game rules
-    is_valid, player, column = is_valid_game_move(current_matrix, previous_matrix, game_state)
-
-    if not is_valid:
-        return False
-
-    # If waiting for AI move detection and the AI has indeed played
-    if game_state.en_attente_detection and player == 1:
-        confirmer_coup_ia(game_state)
-        print(f"AI move detected in column {column + 1}")
-
-    # Update the Pygame display
-    ligne = placer_jeton(column, player)
-    pygame.display.update()
-
+def check_victory(player, game_state):   
     # Check if there is a victory
     if verifier_victoire(player):
         game_state.game_over = True
@@ -111,11 +94,13 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
         message = 22 if player == 2 else 21
         send_to_arduino(serial_obj, message)
         pygame.time.delay(3000)
+        return
     elif plateau_plein():
         game_state.game_over = True
         afficher_message("Draw!")
         send_to_arduino(serial_obj, 20)
         pygame.time.delay(3000)
+        return
     else:
         # Switch between players (1 → 2, 2 → 1)
         game_state.joueur_courant = 3 - player
@@ -130,17 +115,37 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
         else:
             print("Unable to send the data")
 
-        # Refresh the display before continuing
-        pygame.display.update()
+def update_from_camera(current_matrix, previous_matrix, game_state):   
+    #Updates the board with camera data and handles the game logic.  
+    # Check if the move is valid according to the game rules
+    if game_state.game_over:
+        return False
 
-        # If it's the AI's turn, make the AI play
-        if not game_state.game_over and game_state.joueur_courant == 1:
-            time_to_play(game_state)
+    is_valid, player, column = is_valid_game_move(current_matrix, previous_matrix, game_state)
+    if not is_valid:
+        return False
+
+    # If waiting for AI move detection and the AI has indeed played
+    if game_state.en_attente_detection and player == 1:
+        confirmer_coup_ia(game_state)
+        print(f"AI move detected in column {column + 1}")
+
+    # Update the Pygame display
+    ligne = placer_jeton(column, player)
+    pygame.display.update()
+
+    check_victory(player, game_state)
+
+    # Refresh the display before continuing
+    pygame.display.update()
+
+    # If it's the AI's turn, make the AI play
+    if not game_state.game_over and game_state.joueur_courant == 1:
+        time_to_play(game_state)
 
     return True
 
-def main():
-    global serial_obj
+def camera_loop(game_state): 
     #Main function that integrates both programs
     # Initialize the game state
     game_state = GameState()
@@ -151,12 +156,9 @@ def main():
         print("Error: Unable to open the camera. Please check the URL or the connection.")
         return
 
-    # Initialize the game by passing the game state
-    game_state = jouer(game_state)
-
     # Initialize the grid buffer
-    global grid_buffer
-    grid_buffer = []
+    #global grid_buffer
+    #grid_buffer = []
 
     # Wait for the camera to initialize properly
     print("Initializing the camera...")
@@ -190,16 +192,16 @@ def main():
         current_grid = detect_tokens(frame)
 
         # Buffer update every frame
-        grid_buffer.append(current_grid)
-        if len(grid_buffer) > BUFFER_SIZE:
-            grid_buffer.pop(0)
+        game_state.grid_buffer.append(current_grid)
+        if len(game_state.grid_buffer) > BUFFER_SIZE:
+            game_state.grid_buffer.pop(0)
 
         current_time = time.time()
         game_state.grid_changed = False
 
         # Stabilization and conversion to matrix only once per interval
         if current_time - game_state.last_grid_update_time >= GRID_UPDATE_INTERVAL:
-            if len(grid_buffer) >= BUFFER_SIZE // 2:
+            if len(game_state.grid_buffer) >= BUFFER_SIZE // 2:
                 stable_grid = stabilize_grid(current_grid, game_state)
                 current_matrix = grid_to_matrix(stable_grid)
 
@@ -213,6 +215,7 @@ def main():
                     (current_time - game_state.last_change_time >= SETTLING_TIME):
 
                         # Attempt to update the game with this new grid
+                        detect_game_start(current_matrix, game_state)
                         game_updated = update_from_camera(current_matrix, game_state.last_stable_matrix, game_state)
 
                         # Only if the game was successfully updated, update the stable matrix
@@ -262,15 +265,11 @@ def main():
         if key == ord('q'):
             break
         elif key == ord('r'):  # Reset the game
-            print("Reset the game")
-            game_state = jouer()
-            grid_buffer = []
-            last_red_move_matrix = None
-            last_yellow_move_matrix = None
-            # Immediately trigger the AI's turn if it starts
-            if game_state.joueur_courant == 1:
-                time_to_play(game_state)
-
+            print("Resetting game...")
+            game_state = init_game()
+            #grid_buffer = []
+            #last_red_move_matrix = None
+            #last_yellow_move_matrix = None
 
     # Release the resources
     cap.release()
@@ -368,10 +367,8 @@ def overlay_on_camera(frame, grid):
 
 def stabilize_grid(current_grid, game_state):
     # Stabilizes the grid by analyzing the buffer of grids and applying a majority vote
-    global grid_buffer
-
     # If the buffer is not full, return the current grid
-    if len(grid_buffer) < BUFFER_SIZE:
+    if len(game_state.grid_buffer) < BUFFER_SIZE:
         return current_grid
 
     # Create a stabilized grid
@@ -379,13 +376,13 @@ def stabilize_grid(current_grid, game_state):
     all_positions = set()
 
     # Collect all positions from the grid buffer
-    for grid in grid_buffer:
+    for grid in game_state.grid_buffer:
         all_positions.update(grid.keys())
 
     # Iterate through all positions in the buffer
     for pos in all_positions:
         # Collect the colors from all grids in the buffer for this position
-        colors = [grid.get(pos, None) for grid in grid_buffer]
+        colors = [grid.get(pos, None) for grid in game_state.grid_buffer]
         colors = [c for c in colors if c is not None]  # Remove None values
 
         # If no color is detected for this position, skip it
@@ -397,7 +394,7 @@ def stabilize_grid(current_grid, game_state):
         most_common_color, count = color_counts.most_common(1)[0]
 
         # If the most common color appears in at least DETECTION_THRESHOLD of the grids, keep it
-        if count / len(grid_buffer) >= DETECTION_THRESHOLD:  # Use the full buffer as the denominator
+        if count / len(game_state.grid_buffer) >= DETECTION_THRESHOLD:  # Use the full buffer as the denominator
             stable_grid[pos] = most_common_color
 
     # Check that the grid is valid according to the rules
@@ -593,5 +590,5 @@ def mouse_callback(event, x, y, flags, param, frame):
             print(f"HSV at this point: H={h}, S={s}, V={v}")
 
 # Start the game
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#   main()

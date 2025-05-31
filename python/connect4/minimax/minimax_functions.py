@@ -4,8 +4,8 @@ import time
 import math
 import pygame
 import sys
-from arduino_connection.arduino_connection import setup_arduino_connection, send_to_arduino
-from arduino_connection.serial_connection import serial_obj
+from arduino_serial.arduino_connection import setup_arduino_connection, send_to_arduino
+from arduino_serial.serial_connection import serial_obj
 import time
 from game_state import GameState
 
@@ -333,10 +333,6 @@ def afficher_message(message):
     pygame.display.update()
 
 def tour_ordinateur(game_state):
-    print("DEBUG: entering tour_ordinateur()")
-    print("  ia_a_joue:", game_state.ia_a_joue)
-    print("  en_attente_detection:", game_state.en_attente_detection)
-
     """Utilise l'algorithme Minimax pour que l'ordinateur joue"""
     # Si l'IA a déjà joué et on attend la détection, ne pas recalculer
     if game_state.ia_a_joue and game_state.en_attente_detection:
@@ -428,37 +424,6 @@ def time_to_play(game_state):
 
     # Rafraîchir l'affichage une dernière fois
     pygame.display.update()
-
-def jouer(game_state=None):
-    """Initialise une nouvelle partie"""
-    global tour
-
-    # Initialiser le jeu
-    initialiser_jeu()
-
-    if game_state is None:
-        # Si game_state n'est pas fourni, créer un nouveau
-        from camera import GameState
-        game_state = GameState()
-
-    game_state.game_over = False
-
-    # Afficher des messages d'introduction
-    afficher_message("Bienvenue au jeu de Puissance 4 avec IA")
-    pygame.time.delay(1000)
-
-    # Déterminer qui commence aléatoirement
-    game_state.joueur_courant = random.choice([1, 2])
-    if game_state.joueur_courant == 1:
-        afficher_message("L'ordinateur commence!")
-
-    else:
-        afficher_message("Vous commencez!")
-    pygame.time.delay(1000)
-
-    afficher_plateau()
-
-    return game_state
 
 # Lancer le jeu
 if __name__ == "__main__":

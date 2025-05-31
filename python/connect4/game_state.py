@@ -12,6 +12,9 @@ class GameState:
         self.stabilized_matrix = None
         self.grid_changed = False
         self.last_change_time = 0
+        self.grid_buffer = []
+        self.last_red_move_matrix = None
+        self.last_yellow_move_matrix = None
         # Game variables
         self.joueur_courant = 1  # Initially, player 1 starts
         self.ia_a_joue = False
