@@ -4,7 +4,7 @@ from game_state import GameState
 from minimax.minimax_functions import initialiser_jeu, afficher_plateau, afficher_message
 
 def init_game():
-    # Création de l'état du jeu
+    # CrÃ©ation de l'Ã©tat du jeu
     game_state = GameState()
     game_state.game_over = False
 
@@ -12,7 +12,7 @@ def init_game():
     initialiser_jeu()
     afficher_plateau()
 
-    # Choix aléatoire du joueur qui commence
+    # Choix alï¿½atoire du joueur qui commence
     game_state.joueur_courant = random.choice([1, 2])
     if game_state.joueur_courant == 1:
         afficher_message("L'ordinateur commence!")
