@@ -45,12 +45,6 @@ DETECTION_THRESHOLD = 0.6
 SETTLING_TIME = 1.5  # Waiting time in seconds after a change
 GRID_UPDATE_INTERVAL = 0.5  # Update interval in seconds
 
-# Global game state – necessarily global variables
-#last_red_move_matrix = None
-#last_yellow_move_matrix = None
-#grid_buffer = []
-
-
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
     if game_state.initialization_phase:
@@ -156,10 +150,6 @@ def camera_loop(game_state):
     if not cap.isOpened():
         print("Error: Unable to open the camera. Please check the URL or the connection.")
         return
-
-    # Initialize the grid buffer
-    #global grid_buffer
-    #grid_buffer = []
 
     # Wait for the camera to initialize properly
     print("Initializing the camera...")
@@ -268,9 +258,6 @@ def camera_loop(game_state):
         elif key == ord('r'):  # Reset the game
             print("Resetting game...")
             game_state = init_game()
-            #grid_buffer = []
-            #last_red_move_matrix = None
-            #last_yellow_move_matrix = None
 
     # Release the resources
     cap.release()
