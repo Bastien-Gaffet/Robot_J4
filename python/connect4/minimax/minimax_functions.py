@@ -369,8 +369,7 @@ def tour_ordinateur(game_state):
     afficher_message(f"L'ordinateur a choisi la colonne {colonne + 1} (en {elapsed_time:.2f} secondes)")
     entree = colonne + 1
 
-    # Place the AI's token on the board
-    print("colonne ", entree)
+    # Send message to place the AI's token on the board
     send_to_arduino(serial_obj, entree)
 
     pygame.time.delay(500)
