@@ -1,4 +1,4 @@
-#🤖 Connect4 Robot J4
+# 🤖 Connect4 Robot J4
 A physical Connect 4 game powered by:
 
 - 🎥 Computer vision (OpenCV)
@@ -8,14 +8,14 @@ A physical Connect 4 game powered by:
 - 🦾 Mechanical arm
 
 
-##📦 Installation
+## 📦 Installation
 To install and run the python code you can :
-- 1. Clone the repository
+- 1) Clone the repository
     ```bash
     git clone https://github.com/Bastien-Gaffet/Robot_J4.git
     cd Robot_J4/python/connect4_robot_j4
     ```
-    2. Install in development mode
+- 2) Install in development mode
     ```bash
     pip install -e . 
     ```
@@ -23,12 +23,12 @@ To install and run the python code you can :
 ```bash
 pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@Python-main-modification#subdirectory=connect4_robot_j4
 ```
-This will:
+**This will:**
 
 Install all required dependencies (pygame, opencv-python, pyserial, etc.)
 Make the command connect4 available in your terminal
 
-##▶️ Usage
+## ▶️ Usage
 
 To start the game, run:
 ```bash
@@ -42,13 +42,13 @@ Wait for a clean empty grid to begin
 Detect player or AI moves and update the game board in real time
 
 
-##🎮 Controls
+## 🎮 Controls
 
 r → Reset the game
 q → Quit the game
 
 
-##🧱 Project Structure
+## 🧱 Project Structure
 connect4_robot_j4/
 ├── main.py                  # Entry point
 ├── game_loop.py            # Main game logic
@@ -62,7 +62,7 @@ connect4_robot_j4/
 ├── setup.py
 └── README.md
 
-##📋 Requirements
+## 📋 Requirements
 
 Python ≥ 3.8
 opencv-python
@@ -73,21 +73,21 @@ numpy
 You can also install them manually:
 bashpip install -r requirements.txt
 
-##⚙️ Developer Notes
+## ⚙️ Developer Notes
 To modify the code and have changes reflected without reinstalling:
 bashpip install -e .
 
-##🚀 Future Ideas
+## 🚀 Future Ideas
 
 Score tracking
 Match history or logs
 GUI-based calibration for camera and detection zones
 
 
-##👨‍🔬 Author
+## 👨‍🔬 Author
 
 This project was developed by the Vaucanson Robot J4 Team
 
-##📄 License
+## 📄 License
 
 This project is licensed - see the LICENSE file for details.
