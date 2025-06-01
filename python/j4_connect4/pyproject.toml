@@ -25,4 +25,4 @@ connect4 = "connect4_robot_j4.main:main"
 packages = ["connect4_robot_j4"]
 
 [tool.setuptools.package-dir]
-"" = "."
+connect4_robot_j4 = "connect4_robot_j4"
