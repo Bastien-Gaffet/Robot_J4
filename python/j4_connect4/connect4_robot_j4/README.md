@@ -23,7 +23,7 @@ To install and run the python code you can (You need to have Git installed on yo
 ```bash
 pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@main#subdirectory=python/j4_connect4
 ```
-- Finally just type this command :
+- Finally, just type this command; it works as well:
 ```bash
 pip install connect4-robot-j4
 ```
