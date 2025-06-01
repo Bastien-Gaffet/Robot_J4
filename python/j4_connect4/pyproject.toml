@@ -27,3 +27,6 @@ include-package-data = true
 
 [tool.setuptools.package-dir]
 connect4_robot_j4 = "connect4_robot_j4"
+
+[tool.setuptools.package-data]
+connect4_robot_j4 = ["README.md", "LICENSE", "play.bat"]
