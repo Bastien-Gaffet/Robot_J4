@@ -4,4 +4,5 @@ include requirements.txt
 
 recursive-include connect4_robot_j4 *.py
 recursive-include connect4_robot_j4 *.txt
-recursive-include connect4_robot_j4 *.png *.jpg *.json
+
+global-exclude __pycache__ *.py[cod]
