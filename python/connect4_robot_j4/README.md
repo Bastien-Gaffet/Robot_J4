@@ -10,12 +10,12 @@ A physical Connect 4 game powered by:
 
 ## 📦 Installation
 To install and run the python code you can :
-- 1) Clone the repository
+- I Clone the repository
     ```bash
     git clone https://github.com/Bastien-Gaffet/Robot_J4.git
     cd Robot_J4/python/connect4_robot_j4
     ```
-- 2) Install in development mode
+- II Install in development mode
     ```bash
     pip install -e . 
     ```
