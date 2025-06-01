@@ -9,7 +9,7 @@ A physical Connect 4 game powered by:
 
 
 ## 📦 Installation
-To install and run the python code you can :
+To install and run the python code you can (You need to have Git installed on your machine):
 - I Clone the repository
     ```bash
     git clone https://github.com/Bastien-Gaffet/Robot_J4.git
@@ -19,7 +19,7 @@ To install and run the python code you can :
     ```bash
     pip install -e . 
     ```
-- Or just tipe this command (You need to have Git installed on your machine): 
+- Or just tipe this command : 
 ```bash
 pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@Python-main-modification#subdirectory=connect4_robot_j4
 ```
@@ -97,4 +97,4 @@ This project was developed by the Vaucanson Robot J4 Team
 
 ## 📄 License
 
-This project is licensed - see the LICENSE file for details.
+This project is licensed - see the [LICENSE](https://github.com/Bastien-Gaffet/Robot_J4/blob/Python-main-modification/python/connect4_robot_j4/LICENSE) file for details.
