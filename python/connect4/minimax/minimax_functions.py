@@ -369,12 +369,10 @@ def tour_ordinateur(game_state):
     afficher_message(f"L'ordinateur a choisi la colonne {colonne + 1} (en {elapsed_time:.2f} secondes)")
     entree = colonne + 1
 
-    # Vérifier que serial_obj existe avant d'envoyer la commande
-    if serial_obj is not None:
-        print("colonne ", entree)
-        send_to_arduino(serial_obj, entree)
-    else:
-        print(f"Communication série non disponible, IA joue virtuellement en colonne {colonne + 1}")
+    # Place the AI's token on the board
+    print("colonne ", entree)
+    send_to_arduino(serial_obj, entree)
+
     pygame.time.delay(500)
 
     # Marquer que l'IA a joué et on attend la détection
