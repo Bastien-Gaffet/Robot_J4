@@ -13,7 +13,7 @@ To install and run the python code you can (You need to have Git installed on yo
 - I Clone the repository
     ```bash
     git clone https://github.com/Bastien-Gaffet/Robot_J4.git
-    cd Robot_J4/python/connect4_robot_j4
+    cd Robot_J4/python/j4_connect4
     ```
 - II Install in development mode
     ```bash
@@ -21,7 +21,7 @@ To install and run the python code you can (You need to have Git installed on yo
     ```
 - Or just tipe this command : 
 ```bash
-pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@Python-main-modification#subdirectory=connect4_robot_j4
+pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@Python-main-modification#subdirectory=python/j4_connect4
 ```
 **This will:**
 

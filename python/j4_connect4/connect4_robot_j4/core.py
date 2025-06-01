@@ -1,7 +1,11 @@
 import pygame
 import random
-from game_state import GameState
-from minimax.minimax_functions import initialiser_jeu, afficher_plateau, afficher_message
+from connect4_robot_j4.game_state import GameState
+from connect4_robot_j4.minimax.minimax_functions import(
+    initialiser_jeu, 
+    afficher_plateau, 
+    afficher_message
+)
 
 def init_game():
     # Création de l'état du jeu

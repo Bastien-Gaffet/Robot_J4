@@ -1,12 +1,29 @@
 import cv2
 import time
 import pygame
-import constants
-from core import init_game
-from camera.camera import detect_tokens, overlay_on_camera, stabilize_grid, grid_to_matrix, is_valid_move, matrices_are_different, update_player_matrices, mouse_callback, is_valid_game_move
-from minimax.minimax_functions import afficher_message, confirmer_coup_ia, placer_jeton, plateau_plein, time_to_play, verifier_victoire
-from arduino_serial.serial_connection import serial_obj
-from arduino_serial.arduino_connection import send_to_arduino
+import connect4_robot_j4.constants as cs
+from connect4_robot_j4.core import init_game
+from connect4_robot_j4.camera.camera import (
+    detect_tokens,
+    overlay_on_camera,
+    stabilize_grid,
+    grid_to_matrix,
+    is_valid_move,
+    matrices_are_different,
+    update_player_matrices,
+    mouse_callback,
+    is_valid_game_move,
+)
+from connect4_robot_j4.minimax.minimax_functions import (
+    afficher_message,
+    confirmer_coup_ia,
+    placer_jeton,
+    plateau_plein,
+    time_to_play,
+    verifier_victoire,
+)
+from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
+from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
@@ -133,15 +150,15 @@ def run_game_loop(game_state):
 
         # Buffer update every frame
         game_state.grid_buffer.append(current_grid)
-        if len(game_state.grid_buffer) > constants.BUFFER_SIZE:
+        if len(game_state.grid_buffer) > cs.BUFFER_SIZE:
             game_state.grid_buffer.pop(0)
 
         current_time = time.time()
         game_state.grid_changed = False
 
         # Stabilization and conversion to matrix only once per interval
-        if current_time - game_state.last_grid_update_time >= constants.GRID_UPDATE_INTERVAL:
-            if len(game_state.grid_buffer) >= constants.BUFFER_SIZE // 2:
+        if current_time - game_state.last_grid_update_time >= cs.GRID_UPDATE_INTERVAL:
+            if len(game_state.grid_buffer) >= cs.BUFFER_SIZE // 2:
                 stable_grid = stabilize_grid(current_grid, game_state)
                 current_matrix = grid_to_matrix(stable_grid)
 
@@ -152,7 +169,7 @@ def run_game_loop(game_state):
                     # If a change is detected and the stabilization time has passed
                     if (game_state.last_stable_matrix is None or
                         matrices_are_different(current_matrix, game_state.last_stable_matrix)) and \
-                    (current_time - game_state.last_change_time >= constants.SETTLING_TIME):
+                    (current_time - game_state.last_change_time >= cs.SETTLING_TIME):
 
                         # Attempt to update the game with this new grid
                         detect_game_start(current_matrix, game_state)
@@ -189,7 +206,7 @@ def run_game_loop(game_state):
                     (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
 
         # Display the remaining time until the next update
-        time_to_next = max(0, constants.GRID_UPDATE_INTERVAL - (current_time - game_state.last_grid_update_time))
+        time_to_next = max(0, cs.GRID_UPDATE_INTERVAL - (current_time - game_state.last_grid_update_time))
         cv2.putText(camera_overlay, f"Next update : {time_to_next:.1f}s",
                     (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 

@@ -3,11 +3,9 @@ import random
 import time
 import math
 import pygame
-import sys
-from arduino_serial.arduino_connection import setup_arduino_connection, send_to_arduino
-from arduino_serial.serial_connection import serial_obj
+from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
+from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 import time
-from game_state import GameState
 
 # Constantes globales
 TAILLE_CASE = 80

@@ -23,6 +23,7 @@ connect4 = "connect4_robot_j4.main:main"
 
 [tool.setuptools]
 packages = ["connect4_robot_j4"]
+include-package-data = true
 
 [tool.setuptools.package-dir]
 connect4_robot_j4 = "connect4_robot_j4"
