@@ -1,11 +1,11 @@
 # 🤖 Connect4 Robot J4
 A physical Connect 4 game powered by:
 
-- 🎥 Computer vision (OpenCV)
-- 🧠 Artificial intelligence (minimax algorithm)
-- ⚙️ Arduino-based control (via PySerial)
-- 🖥 Graphical interface (Pygame)
-- 🦾 Mechanical arm
+- 🎥 **Computer vision** (OpenCV)
+- 🧠 **Artificial intelligence** (minimax algorithm)
+- ⚙️ **Arduino-based control** (via PySerial)
+- 🖥 **Graphical interface** (Pygame)
+- 🦾 **Mechanical arm** (MOVEO-3D)
 
 
 ## 📦 Installation
@@ -30,27 +30,28 @@ Make the command connect4 available in your terminal
 
 ## ▶️ Usage
 
-To start the game, run:
+To **start** the game, run:
 ```bash
 connect4
 ```
 The program will:
 
-Initialize the game state
-Start the camera
-Wait for a clean empty grid to begin
-Detect player or AI moves and update the game board in real time
+1. **Initialize** the game state
+2. **Start** the camera
+3. **Wait** for a clean empty grid to begin
+4. **Detect** player or AI moves and **update** the game board in **real time**
 
 
 ## 🎮 Controls
 
-r → Reset the game
-q → Quit the game
+- **r** → Reset the game
+- **q** → Quit the game
 
 
 ## 🧱 Project Structure
+```bash
 connect4_robot_j4/
-├── main.py                  # Entry point
+├── main.py                 # Entry point
 ├── game_loop.py            # Main game logic
 ├── core.py                 # Game initialization
 ├── game_state.py           # Game state container
@@ -61,28 +62,34 @@ connect4_robot_j4/
 ├── requirements.txt
 ├── setup.py
 └── README.md
+```
 
 ## 📋 Requirements
 
+```python
 Python ≥ 3.8
 opencv-python
 pygame
 pyserial
 numpy
+```
 
 You can also install them manually:
-bashpip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
 ## ⚙️ Developer Notes
 To modify the code and have changes reflected without reinstalling:
-bashpip install -e .
+```bash
+pip install -e .
+```
 
 ## 🚀 Future Ideas
 
-Score tracking
-Match history or logs
-GUI-based calibration for camera and detection zones
-
+- Score tracking
+- Match history or logs
+- GUI-based calibration for camera and detection zones
 
 ## 👨‍🔬 Author
 
