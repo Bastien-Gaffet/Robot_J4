@@ -1,5 +1,5 @@
 @echo off
 echo Starting a game of Connect 4 against Robot J4...
-python -m main
+connect4
 echo Press any key to close...
 pause >nul
