@@ -1,5 +1,3 @@
-import time
-
 class GameState:
     def __init__(self):
         self.initialization_phase = True
@@ -15,7 +13,6 @@ class GameState:
         self.grid_buffer = []
         self.last_red_move_matrix = None
         self.last_yellow_move_matrix = None
-        # Game variables
         self.joueur_courant = 1  # Initially, player 1 starts
         self.ia_a_joue = False
         self.en_attente_detection = False
