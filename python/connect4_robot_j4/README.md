@@ -97,4 +97,4 @@ This project was developed by the Vaucanson Robot J4 Team
 
 ## 📄 License
 
-This project is licensed - see the [LICENSE](https://github.com/Bastien-Gaffet/Robot_J4/blob/Python-main-modification/python/connect4_robot_j4/LICENSE) file for details.
+This project is licensed - see the [LICENSE](https://github.com/Bastien-Gaffet/Robot_J4/blob/main/LICENSE) file for details.
