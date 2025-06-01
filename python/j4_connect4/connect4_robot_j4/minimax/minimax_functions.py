@@ -3,10 +3,8 @@ import random
 import time
 import math
 import pygame
-import sys
-import serial.tools.list_ports
-import serial
-from camera import camera
+from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
+from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 import time
 
 # Constantes globales
@@ -369,13 +367,9 @@ def tour_ordinateur(game_state):
     afficher_message(f"L'ordinateur a choisi la colonne {colonne + 1} (en {elapsed_time:.2f} secondes)")
     entree = colonne + 1
 
-    # Vérifier que SerialObj existe avant d'envoyer la commande
-    if hasattr(camera, 'SerialObj') and camera.SerialObj is not None:
-        print("colonne ", entree)
-        camera.SerialObj.write(f"{entree}\n".encode())
-    else:
-        print(f"Communication série non disponible, IA joue virtuellement en colonne {colonne + 1}")
-    print("test")
+    # Send message to place the AI's token on the board
+    send_to_arduino(serial_obj, entree)
+
     pygame.time.delay(500)
 
     # Marquer que l'IA a joué et on attend la détection
@@ -415,6 +409,7 @@ def time_to_play(game_state):
         pygame.time.delay(100)
         # Faire jouer l'IA
         tour_ordinateur(game_state)
+        print("")
 
     # Tour du joueur humain (joueur 2 = jaune)
     elif game_state.joueur_courant == 2:
@@ -424,54 +419,3 @@ def time_to_play(game_state):
 
     # Rafraîchir l'affichage une dernière fois
     pygame.display.update()
-
-def jouer(game_state=None):
-    """Initialise une nouvelle partie"""
-    global tour
-
-    # Initialiser le jeu
-    initialiser_jeu()
-
-    if game_state is None:
-        # Si game_state n'est pas fourni, créer un nouveau
-        from camera import GameState
-        game_state = GameState()
-
-    game_state.game_over = False
-
-    # Afficher des messages d'introduction
-    afficher_message("Bienvenue au jeu de Puissance 4 avec IA")
-    pygame.time.delay(1000)
-
-    # Déterminer qui commence aléatoirement
-    game_state.joueur_courant = random.choice([1, 2])
-    if game_state.joueur_courant == 1:
-        afficher_message("L'ordinateur commence!")
-
-    else:
-        afficher_message("Vous commencez!")
-    pygame.time.delay(1000)
-
-    afficher_plateau()
-
-    return game_state
-
-"""# Fin de la partie
-afficher_message("Fin de la partie! Cliquez pour rejouer (ou fermez la fenêtre pour quitter)")
-pygame.display.update()
-
-# Attendre que le joueur décide de rejouer ou quitter
-attente_decision = True
-while attente_decision:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            attente_decision = False
-            pygame.quit()
-            jouer()  # Relancer une nouvelle partie"""
-
-# Lancer le jeu
-if __name__ == "__main__":
-    jouer()

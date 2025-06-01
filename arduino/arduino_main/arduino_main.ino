@@ -446,6 +446,7 @@ void loop() {
                 case 8: ledsRouges(); break;
                 case 9: ledsJaunes(); break;
                 case 12: posmvt(); break;
+                case 13: prendreJeton(0, 1480, 680, 800, 900); break;
                 case 20: matchNul(); break;
                 case 21: victoireRouge(); break;
                 case 22: victoireJaune(); break;

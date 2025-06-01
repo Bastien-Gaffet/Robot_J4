@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include requirements.txt
+
+recursive-include connect4_robot_j4 *.py
+recursive-include connect4_robot_j4 *.txt
+
+global-exclude __pycache__ *.py[cod]

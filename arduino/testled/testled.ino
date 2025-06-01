@@ -1,5 +1,6 @@
 #include <Adafruit_NeoPixel.h>
-
+// This sketch is designed to test a strip of NeoPixels by lighting them up one by one.
+// It will stop when it reaches the end of the strip or when an LED does not light up.
 #define PIN       6
 #define MAX_TEST  120  // Maximum number of LEDs to test (adjust as needed)
 
