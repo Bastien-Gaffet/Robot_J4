@@ -19,10 +19,15 @@ To install and run the python code you can (You need to have Git installed on yo
     ```bash
     pip install -e . 
     ```
-- Or just tipe this command : 
+- Or you can also tipe this command : 
 ```bash
-pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@Python-main-modification#subdirectory=python/j4_connect4
+pip install git+https://github.com/Bastien-Gaffet/Robot_J4.git@main#subdirectory=python/j4_connect4
 ```
+- Finally just type this command :
+```bash
+pip install connect4-robot-j4
+```
+
 **This will:**
 
 Install all required dependencies (pygame, opencv-python, pyserial, etc.)
