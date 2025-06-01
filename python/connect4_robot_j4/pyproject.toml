@@ -19,4 +19,10 @@ dependencies = [
 ]
 
 [project.scripts]
-connect4 = "connect4_robot_j4.main:main"
+connect4 = "connect4.main:main"
+
+[tool.setuptools]
+packages = ["connect4_robot_j4"]
+
+[tool.setuptools.package-dir]
+"" = "."
