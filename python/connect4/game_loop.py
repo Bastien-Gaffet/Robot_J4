@@ -6,7 +6,6 @@ from camera.camera import detect_tokens, overlay_on_camera, stabilize_grid, grid
 from minimax.minimax_functions import afficher_message, confirmer_coup_ia, placer_jeton, plateau_plein, time_to_play, verifier_victoire
 from arduino_serial.serial_connection import serial_obj
 from arduino_serial.arduino_connection import send_to_arduino
-from game_state import GameState
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
