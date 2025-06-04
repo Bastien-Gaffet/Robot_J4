@@ -72,3 +72,6 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Ignorer un dossier spécifique
+minimax_C++/Tutorial_solving_connect4/connect4-master/
