@@ -4,6 +4,7 @@ import time
 import connect4_robot_j4.constants as cs
 from collections import Counter
 from connect4_robot_j4.minimax.minimax_functions import verifier_coup_ia
+import numpy as np
 
 def detect_circles(frame, lower, upper):
     # Detects circles of a specific color in the image

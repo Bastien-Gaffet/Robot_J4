@@ -24,6 +24,12 @@ from connect4_robot_j4.minimax.minimax_functions import (
 )
 from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
+from connect4_robot_j4.camera.camera_handler import (
+    CameraHandler,  
+    create_fallback_frame,
+    stabilize_camera,
+    initialize_camera
+)
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
@@ -111,33 +117,28 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     return True
 
 def run_game_loop(game_state):
-    # Loading video capture
-    cap = cv2.VideoCapture(0)#"http://192.168.68.56:4747/video"
-    if not cap.isOpened():
-        print("Error: Unable to open the camera. Please check the URL or the connection.")
-        return
+    # Try to initialize the camera
+    camera = initialize_camera()
 
-    # Wait for the camera to initialize properly
-    print("Initializing the camera...")
-    for _ in range(10):  # Capture a few frames to stabilize the camera
-        ret, _ = cap.read()
-        if not ret:
-            print("Error: Unable to read a frame from the camera.")
-            return
-        time.sleep(0.1)
+    # Read a frame from the camera or create a fallback image
+    ret, frame = camera.get_frame()
     print("Camera initialized!")
+
+    # Display the result
+    cv2.imshow("Camera Preview", frame)
+    cv2.destroyAllWindows()
 
     # Main loop
     while True:
         # Handle Pygame events to prevent the interface from appearing frozen
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                cap.release()
+                camera.release()
                 cv2.destroyAllWindows()
                 pygame.quit()
                 return
 
-        ret, frame = cap.read()
+        ret, frame = camera.get_frame()
         if not ret:
             print("Error: Unable to read a frame from the camera.")
             break
@@ -226,6 +227,6 @@ def run_game_loop(game_state):
             game_state = init_game()
 
     # Release the resources
-    cap.release()
+    camera.release()
     cv2.destroyAllWindows()
     pygame.quit()
