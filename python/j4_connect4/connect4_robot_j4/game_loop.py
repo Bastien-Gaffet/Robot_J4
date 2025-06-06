@@ -13,6 +13,7 @@ from connect4_robot_j4.camera.camera import (
     update_player_matrices,
     mouse_callback,
     is_valid_game_move,
+    is_valid_new_move,
 )
 from connect4_robot_j4.minimax.minimax_functions import (
     afficher_message,
@@ -24,12 +25,8 @@ from connect4_robot_j4.minimax.minimax_functions import (
 )
 from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
-from connect4_robot_j4.camera.camera_handler import (
-    CameraHandler,  
-    create_fallback_frame,
-    stabilize_camera,
-    initialize_camera
-)
+from connect4_robot_j4.camera.camera_handler import initialize_camera
+
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
@@ -97,6 +94,9 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     is_valid, player, column = is_valid_game_move(current_matrix, previous_matrix, game_state)
     if not is_valid:
         return False
+    if not is_valid_new_move(previous_matrix, current_matrix):
+        return False
+    
     # If waiting for AI move detection and the AI has indeed played
     if game_state.en_attente_detection and player == 1:
         confirmer_coup_ia(game_state)
