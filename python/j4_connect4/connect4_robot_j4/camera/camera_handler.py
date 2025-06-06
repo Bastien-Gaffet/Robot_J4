@@ -2,8 +2,8 @@ import cv2
 import time
 import numpy as np
 import connect4_robot_j4.constants as cs
-import requests
-import connect4_robot_j4.constants as cs
+import socket
+from urllib.parse import urlparse
 
 class CameraHandler:
     def __init__(self, cap):
@@ -22,29 +22,30 @@ class CameraHandler:
         if self.cap:
             self.cap.release()
 
-'''def is_ip_cam_available(url, timeout):
-    #Quick check: tries to ping the IP cam URL.
-    #Returns True if reachable, False otherwise.
+def is_ip_cam_available(ip, port, timeout=2):
     try:
-        response = requests.head(url, timeout=timeout)
-        return response.status_code == 200
-    except requests.RequestException:
-        print(f"IP camera at {url} is not reachable (timeout: {timeout}s).")
+        with socket.create_connection((ip, port), timeout=timeout):
+            return True
+    except OSError:
         return False
-        '''
     
 def initialize_camera(use_ip_cam=cs.USE_IP_CAM, ip_cam_url=cs.IP_CAM_URL, preferred_index=None, max_index=cs.MAX_INDEX):
     #Tries to open IP camera first (if enabled), then local cameras by index.
     #Returns the first working VideoCapture object, or None if no camera is found.
     print("Initializing the camera...")
     if use_ip_cam:
-        cap = cv2.VideoCapture(ip_cam_url)
-        stabilize_camera(cap)
-        if cap.isOpened():
-            print(f"IP camera connected: {ip_cam_url}")
-            return CameraHandler(cap)
-        cap.release()
-        print("Failed to connect to IP camera.")
+        parsed_url = urlparse(ip_cam_url)
+        ip = parsed_url.hostname
+        port = parsed_url.port or 4747
+
+        if is_ip_cam_available(ip, port):
+            cap = cv2.VideoCapture(ip_cam_url)
+            stabilize_camera(cap)
+            if cap.isOpened():
+                print(f"IP camera connected: {ip_cam_url}")
+                return CameraHandler(cap)
+            cap.release()
+            print("Failed to connect to IP camera.")
         
         # If a preferred camera index is provided
     if preferred_index is not None:
