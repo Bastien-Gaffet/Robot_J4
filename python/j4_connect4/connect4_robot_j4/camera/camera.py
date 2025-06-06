@@ -273,6 +273,25 @@ def get_last_player(current_matrix, previous_matrix):
     # No new token found
     return None
 
+def is_valid_new_move(previous_matrix, current_matrix, empty_value=0):
+    # Checks if `current_matrix` differs from `previous_matrix` by exactly one added token.
+    if previous_matrix.shape != current_matrix.shape:
+        return False
+
+    # Trouver les indices où les valeurs diffèrent
+    differences = np.where(previous_matrix != current_matrix)
+
+    if len(differences[0]) != 1:
+        return False  # plus d'une case différente
+
+    y, x = differences[0][0], differences[1][0]
+    
+    # Vérifie que l'ancienne case était vide et la nouvelle occupée
+    if previous_matrix[y, x] == empty_value and current_matrix[y, x] != empty_value:
+        return True
+
+    return False
+
 def is_empty_matrix(matrix):
     # Check if the matrix is empty (no tokens placed)
     return all(all(cell == 0 for cell in row) for row in matrix)
@@ -313,8 +332,9 @@ def mouse_callback(event, x, y, flags, param, frame):
     # Callback for mouse clicks – useful for debugging colors
     if event == cv2.EVENT_LBUTTONDOWN:
         if cs.ROI_X <= x <= cs.ROI_X + cs.ROI_W and cs.ROI_Y <= y <= cs.ROI_Y + cs.ROI_H:
-            cs.ROI_X, cs.ROI_Y = x - cs.ROI_X, y - cs.ROI_Y
+            local_x = x - cs.ROI_X
+            local_y = y - cs.ROI_Y
             roi = frame[cs.ROI_Y:cs.ROI_Y + cs.ROI_H, cs.ROI_X:cs.ROI_X + cs.ROI_W]
             hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-            h, s, v = hsv[cs.ROI_Y, cs.ROI_X]
+            h, s, v = hsv[local_y, local_x]
             print(f"HSV at this point: H={h}, S={s}, V={v}")
