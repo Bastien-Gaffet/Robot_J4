@@ -344,3 +344,11 @@ def mouse_callback(event, x, y, flags, param, frame):
             hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
             h, s, v = hsv[local_y, local_x]
             print(f"HSV at this point: H={h}, S={s}, V={v}")
+
+def add_column_to_database(current_matrix, previous_matrix, game_state):
+    """
+    Adds a column move to the database for the current game state.
+    """
+    col = get_last_move_column(current_matrix, previous_matrix)
+    if col != -1:
+        game_state.moves.append(col + 1)  # de 0-6 vers 1-7

@@ -1,6 +1,7 @@
 import cv2
 import time
 import pygame
+import datetime
 import connect4_robot_j4.constants as cs
 from connect4_robot_j4.core import init_game
 from connect4_robot_j4.camera.camera import (
@@ -14,6 +15,7 @@ from connect4_robot_j4.camera.camera import (
     mouse_callback,
     is_valid_game_move,
     is_valid_new_move,
+    add_column_to_database,
 )
 from connect4_robot_j4.minimax.minimax_functions import (
     afficher_message,
@@ -70,12 +72,16 @@ def check_victory(player, game_state):
         message = "Congratulations! You won!" if player == 2 else "The computer won!"
         afficher_message(message)
         send_to_arduino(serial_obj, 22 if player == 2 else 21)
+        game_state.game_end_time = datetime.datetime.now()
+        game_state.winner = who_wins(player)  # à adapter à ton code
         pygame.time.delay(3000)
         return
     elif plateau_plein():
         game_state.game_over = True
         afficher_message("Draw!")
         send_to_arduino(serial_obj, 20)
+        game_state.game_end_time = datetime.datetime.now()
+        game_state.winner = "Draw"
         pygame.time.delay(3000)
         return
     # Switch between players (1 → 2, 2 → 1)
@@ -86,6 +92,12 @@ def check_victory(player, game_state):
     if game_state.joueur_courant == 1:
         send_to_arduino(serial_obj, 12)
 
+def who_wins(player):
+    if player == 1:
+        return "AI (Red)"
+    elif player == 2:
+        return "Player (Yellow)"
+    return None
 
 def update_from_camera(current_matrix, previous_matrix, game_state):
     #Updates the board with camera data and handles the game logic.  
@@ -182,6 +194,7 @@ def run_game_loop(game_state):
                         if game_updated:
                             game_state.grid_changed = True
                             game_state.current_matrix = current_matrix
+                            add_column_to_database(current_matrix, game_state.last_stable_matrix, game_state)
 
                             # Update the player-specific matrices
                             update_player_matrices(current_matrix, game_state.last_stable_matrix)
