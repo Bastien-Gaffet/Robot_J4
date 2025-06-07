@@ -13,6 +13,7 @@ from connect4_robot_j4.camera.camera import (
     update_player_matrices,
     mouse_callback,
     is_valid_game_move,
+    is_valid_new_move,
 )
 from connect4_robot_j4.minimax.minimax_functions import (
     afficher_message,
@@ -24,6 +25,8 @@ from connect4_robot_j4.minimax.minimax_functions import (
 )
 from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
+from connect4_robot_j4.camera.camera_handler import initialize_camera
+
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
@@ -48,8 +51,11 @@ def detect_game_start(current_matrix, game_state):
 
             # If the AI starts, make its first move
             if game_state.joueur_courant == 1:
+                send_to_arduino(serial_obj, 8)
                 send_to_arduino(serial_obj, 12)
                 time_to_play(game_state)
+            else:
+                send_to_arduino(serial_obj, 9)
 
             game_state.initialization_phase = False
             return True
@@ -75,12 +81,11 @@ def check_victory(player, game_state):
     # Switch between players (1 → 2, 2 → 1)
     game_state.joueur_courant = 3 - player
     print(f"Player's turn {game_state.joueur_courant}")
-    if serial_obj is not None:
-        send_to_arduino(serial_obj, game_state.joueur_courant + 7)
-        if game_state.joueur_courant == 1:
-            send_to_arduino(serial_obj, 12)
-    else:
-        print("Unable to send the data")
+
+    send_to_arduino(serial_obj, game_state.joueur_courant + 7)
+    if game_state.joueur_courant == 1:
+        send_to_arduino(serial_obj, 12)
+
 
 def update_from_camera(current_matrix, previous_matrix, game_state):
     #Updates the board with camera data and handles the game logic.  
@@ -91,6 +96,9 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     is_valid, player, column = is_valid_game_move(current_matrix, previous_matrix, game_state)
     if not is_valid:
         return False
+    if not is_valid_new_move(previous_matrix, current_matrix):
+        return False
+    
     # If waiting for AI move detection and the AI has indeed played
     if game_state.en_attente_detection and player == 1:
         confirmer_coup_ia(game_state)
@@ -111,33 +119,28 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     return True
 
 def run_game_loop(game_state):
-    # Loading video capture
-    cap = cv2.VideoCapture(0)#"http://192.168.68.56:4747/video"
-    if not cap.isOpened():
-        print("Error: Unable to open the camera. Please check the URL or the connection.")
-        return
+    # Try to initialize the camera
+    camera = initialize_camera()
 
-    # Wait for the camera to initialize properly
-    print("Initializing the camera...")
-    for _ in range(10):  # Capture a few frames to stabilize the camera
-        ret, _ = cap.read()
-        if not ret:
-            print("Error: Unable to read a frame from the camera.")
-            return
-        time.sleep(0.1)
+    # Read a frame from the camera or create a fallback image
+    ret, frame = camera.get_frame()
     print("Camera initialized!")
+
+    # Display the result
+    cv2.imshow("Camera Preview", frame)
+    cv2.destroyAllWindows()
 
     # Main loop
     while True:
         # Handle Pygame events to prevent the interface from appearing frozen
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                cap.release()
+                camera.release()
                 cv2.destroyAllWindows()
                 pygame.quit()
                 return
 
-        ret, frame = cap.read()
+        ret, frame = camera.get_frame()
         if not ret:
             print("Error: Unable to read a frame from the camera.")
             break
@@ -226,6 +229,6 @@ def run_game_loop(game_state):
             game_state = init_game()
 
     # Release the resources
-    cap.release()
+    camera.release()
     cv2.destroyAllWindows()
     pygame.quit()

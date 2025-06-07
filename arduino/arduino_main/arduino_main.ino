@@ -76,8 +76,6 @@ AccelStepper stepper_3(AccelStepper::DRIVER,stepPin_3,dirPin_3);
 AccelStepper stepper_4(AccelStepper::DRIVER,stepPin_4,dirPin_4);
 AccelStepper stepper_5(AccelStepper::DRIVER,stepPin_5,dirPin_5);
 
-void prendreJeton(int pas1, int pas2, int pas3, int pas4, int pas5);
-
 void setup(){
   strip.begin();
   strip.setBrightness(150);
@@ -109,7 +107,6 @@ void setup(){
   stepper_5.setAcceleration(Accel5); //acceleration in steps per second²
   Serial.begin(9600);
   Serial.setTimeout(1000);
-  prendreJeton(0, 1480, 680, 800, 900);
 }
 
 // --- FUNCTION: Red ---
