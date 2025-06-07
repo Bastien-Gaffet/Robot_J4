@@ -274,15 +274,21 @@ def get_last_player(current_matrix, previous_matrix):
     return None
 
 def is_valid_new_move(previous_matrix, current_matrix, empty_value=0):
-    # Checks if `current_matrix` differs from `previous_matrix` by exactly one added token.
+    previous_matrix = np.array(previous_matrix)
+    current_matrix = np.array(current_matrix)
+
+    # Vérifie que les matrices ont la même forme
     if previous_matrix.shape != current_matrix.shape:
+        print("Les matrices n'ont pas la même forme !")
         return False
 
     # Trouver les indices où les valeurs diffèrent
     differences = np.where(previous_matrix != current_matrix)
 
-    if len(differences[0]) != 1:
-        return False  # plus d'une case différente
+    # Vérifie que differences est bien un tuple de deux éléments non vides
+    if len(differences) != 2 or len(differences[0]) != 1 or len(differences[1]) != 1:
+        print("Invalid move detected.")
+        return False
 
     y, x = differences[0][0], differences[1][0]
     

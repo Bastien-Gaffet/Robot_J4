@@ -51,8 +51,11 @@ def detect_game_start(current_matrix, game_state):
 
             # If the AI starts, make its first move
             if game_state.joueur_courant == 1:
+                send_to_arduino(serial_obj, 8)
                 send_to_arduino(serial_obj, 12)
                 time_to_play(game_state)
+            else:
+                send_to_arduino(serial_obj, 9)
 
             game_state.initialization_phase = False
             return True
@@ -78,12 +81,11 @@ def check_victory(player, game_state):
     # Switch between players (1 → 2, 2 → 1)
     game_state.joueur_courant = 3 - player
     print(f"Player's turn {game_state.joueur_courant}")
-    if serial_obj is not None:
-        send_to_arduino(serial_obj, game_state.joueur_courant + 7)
-        if game_state.joueur_courant == 1:
-            send_to_arduino(serial_obj, 12)
-    else:
-        print("Unable to send the data")
+
+    send_to_arduino(serial_obj, game_state.joueur_courant + 7)
+    if game_state.joueur_courant == 1:
+        send_to_arduino(serial_obj, 12)
+
 
 def update_from_camera(current_matrix, previous_matrix, game_state):
     #Updates the board with camera data and handles the game logic.  
