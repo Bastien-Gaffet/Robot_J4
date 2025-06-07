@@ -1,11 +1,13 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import datetime
+import os
 from game_state import GameState
 from constants import MINIMAX_DEPTH
 
 # 1. Initialization of Firebase Admin SDK
-cred = credentials.Certificate("chemin/vers/ta/cle-firebase.json")
+key_path = os.environ.get("FIREBASE_CRED", "connect4_robot_j4/game_data/serviceAccountKey.json")
+cred = credentials.Certificate(str(key_path))
 firebase_admin.initialize_app(cred)
 
 # 2. Connection to Firestore
