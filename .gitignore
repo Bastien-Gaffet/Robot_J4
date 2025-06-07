@@ -41,7 +41,7 @@ package-lock.json # (optionnel, si vous voulez l’exclure)
 # Clés d'API ou secrets
 *.env
 *.env.*
-firebase-key.json
+firebase_key.json
 *.secret.json
 serviceAccountKey.json
 
