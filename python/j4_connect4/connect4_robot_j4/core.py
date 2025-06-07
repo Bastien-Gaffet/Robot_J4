@@ -13,7 +13,7 @@ def init_game():
     # Creation of the game state
     game_state = GameState()
     game_state.game_start_time = datetime.datetime.now()
-    game_state.game_id = str(uuid.uuid4())  # Unique game ID based on timestamp
+    game_state.game_id = str(uuid.uuid4())  # Unique game ID
 
     # Board initialization and display
     initialiser_jeu()
