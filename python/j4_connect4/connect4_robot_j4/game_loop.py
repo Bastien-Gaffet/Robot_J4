@@ -28,6 +28,7 @@ from connect4_robot_j4.minimax.minimax_functions import (
 from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
 from connect4_robot_j4.camera.camera_handler import initialize_camera
+from connect4_robot_j4.game_data.fire_base import send_game_data
 
 
 def detect_game_start(current_matrix, game_state):
@@ -74,6 +75,7 @@ def check_victory(player, game_state):
         send_to_arduino(serial_obj, 22 if player == 2 else 21)
         game_state.game_end_time = datetime.datetime.now()
         game_state.winner = who_wins(player)  # à adapter à ton code
+        send_game_data(game_state)
         pygame.time.delay(3000)
         return
     elif plateau_plein():
@@ -82,6 +84,7 @@ def check_victory(player, game_state):
         send_to_arduino(serial_obj, 20)
         game_state.game_end_time = datetime.datetime.now()
         game_state.winner = "Draw"
+        send_game_data(game_state)
         pygame.time.delay(3000)
         return
     # Switch between players (1 → 2, 2 → 1)
@@ -120,6 +123,7 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     placer_jeton(column, player)
     pygame.display.update()
 
+    add_column_to_database(current_matrix, previous_matrix, game_state)
     check_victory(player, game_state)
 
     pygame.display.update()
@@ -194,7 +198,6 @@ def run_game_loop(game_state):
                         if game_updated:
                             game_state.grid_changed = True
                             game_state.current_matrix = current_matrix
-                            add_column_to_database(current_matrix, game_state.last_stable_matrix, game_state)
 
                             # Update the player-specific matrices
                             update_player_matrices(current_matrix, game_state.last_stable_matrix)

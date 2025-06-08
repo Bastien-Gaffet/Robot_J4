@@ -6,7 +6,7 @@ import pygame
 from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
 from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
 import time
-from constants import MINIMAX_DEPTH
+from connect4_robot_j4.constants import MINIMAX_DEPTH
 
 # Constantes globales
 TAILLE_CASE = 80
