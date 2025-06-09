@@ -1,3 +1,3 @@
-from connect4_robot_j4.arduino_serial.arduino_connection import setup_arduino_connection
+from connect4_robot_j4.arduino_serial import setup_arduino_connection
 
 serial_obj = setup_arduino_connection()
