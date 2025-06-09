@@ -8,21 +8,26 @@ from connect4_robot_j4.constants import MINIMAX_DEPTH
 def initialize_firebase():
     """
     Initializes the Firebase Admin SDK and connects to Firestore.
-    This function should be called before any other Firebase operations.
+    Returns a Firestore client if successful, otherwise None.
     """
-    # 0. Check if the environment variable is set
-    if "FIREBASE_CRED" not in os.environ:
-        raise EnvironmentError("FIREBASE_CRED environment variable is not set.")
+    try:
+        if "FIREBASE_CRED" not in os.environ:
+            print("[Firebase] Environment variable FIREBASE_CRED is not set.")
+            return None
 
-    # 1. Initialization of Firebase Admin SDK
-    key_path = os.environ.get("FIREBASE_CRED")
-    cred = credentials.Certificate(str(key_path))
-    firebase_admin.initialize_app(cred)
+        key_path = os.environ.get("FIREBASE_CRED")
+        cred = credentials.Certificate(str(key_path))
+        
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
 
-    # 2. Connection to Firestore
-    db = firestore.client()
-    
-    return db
+        db = firestore.client()
+        print("[Firebase] Successfully connected to Firestore.")
+        return db
+
+    except Exception as e:
+        print(f"[Firebase] Initialization failed: {e}")
+        return None
 
 def get_game_data(game_state: GameData):
     """
@@ -43,8 +48,13 @@ def send_game_data(game_state: GameData, db):
     """
     Sends game data to the Firestore database.
     """
-    game_data = get_game_data(game_state)
-    
-    # 3. Sending to the "games" collection
-    db.collection("games").document(game_data["game_id"]).set(game_data)
-    print("Game successfully sent to Firebase!")
+    if db is None:
+        print("[Firebase] No database connection. Game data not sent.")
+        return
+
+    try:
+        game_data = get_game_data(game_state)
+        db.collection("games").document(game_data["game_id"]).set(game_data)
+        print("[Firebase] Game successfully sent to Firestore.")
+    except Exception as e:
+        print(f"[Firebase] Failed to send game data: {e}")
