@@ -3,9 +3,10 @@ import random
 import time
 import math
 import pygame
-from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
-from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
+from connect4_robot_j4.arduino_serial import send_to_arduino
+from connect4_robot_j4.arduino_serial import serial_obj
 import time
+from connect4_robot_j4.constants import MINIMAX_DEPTH
 
 # Constantes globales
 TAILLE_CASE = 80
@@ -25,7 +26,6 @@ plateau = None
 screen = None
 font = None
 tour = 0
-PROFONDEUR_MAX = 7
 
 ia_a_joue = False  # Pour suivre si l'IA a déjà joué son coup dans ce tour
 dernier_coup_ia = None  # Pour stocker le dernier coup calculé par l'IA
@@ -350,7 +350,7 @@ def tour_ordinateur(game_state):
     start_time = time.time()
 
     # Ajuster la profondeur en fonction du nombre de coups joués
-    profondeur = min(PROFONDEUR_MAX, 42 - tour)
+    profondeur = min(MINIMAX_DEPTH, 42 - tour)
 
     # Utiliser l'algorithme minimax
     colonne, score = minimax(profondeur, -math.inf, math.inf, True)

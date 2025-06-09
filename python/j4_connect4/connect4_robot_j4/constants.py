@@ -1,20 +1,19 @@
 import numpy as np
-# Definition of HSV colors
-LOWER_RED1 = np.array([0, 100, 80])
+# Definition of HSV colors thresholds for color detection
+LOWER_RED1 = np.array([0, 50, 50])
 UPPER_RED1 = np.array([10, 255, 255])
-LOWER_RED2 = np.array([170, 100, 80])
+LOWER_RED2 = np.array([170, 50, 50])
 UPPER_RED2 = np.array([180, 255, 255])
+
 
 LOWER_YELLOW1 = np.array([15, 100, 100])
 UPPER_YELLOW1 = np.array([30, 255, 255])
 LOWER_YELLOW2 = np.array([30, 100, 100])
 UPPER_YELLOW2 = np.array([45, 255, 255])
-
-LOWER_YELLOW3 = np.array([29, 200, 130])
-UPPER_YELLOW3 = np.array([36, 255, 200])
-
-LOWER_YELLOW4 = np.array([25, 200, 110])
-UPPER_YELLOW4 = np.array([33, 255, 200])
+LOWER_YELLOW3 = np.array([26, 140, 200])
+UPPER_YELLOW3 = np.array([32, 255, 255])
+LOWER_YELLOW4 = np.array([25, 130, 200])
+UPPER_YELLOW4 = np.array([33, 255, 255])
 
 # Constants for image processing
 KERNEL = np.ones((7, 7), np.uint8)
@@ -33,7 +32,10 @@ SETTLING_TIME = 1.5  # Waiting time in seconds after a change
 GRID_UPDATE_INTERVAL = 0.5  # Update interval in seconds
 
 # Camera settings
-MAX_INDEX = 5  # Maximum index for camera selection
+MAX_INDEX = 3  # Maximum index for camera selection
 IP_CAM_URL = "http://192.168.1.55:4747/video"
 USE_IP_CAM = True  # Toggle this to False to disable IP cam check
 PREFERRED_INDEX = None  # Default camera index, non used : None
+
+#MiniMax settings
+MINIMAX_DEPTH = 7  # Default depth for the Minimax algorithm

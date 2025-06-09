@@ -1,9 +1,10 @@
 import cv2
 import time
 import pygame
+import datetime
 import connect4_robot_j4.constants as cs
 from connect4_robot_j4.core import init_game
-from connect4_robot_j4.camera.camera import (
+from connect4_robot_j4.camera import (
     detect_tokens,
     overlay_on_camera,
     stabilize_grid,
@@ -14,8 +15,9 @@ from connect4_robot_j4.camera.camera import (
     mouse_callback,
     is_valid_game_move,
     is_valid_new_move,
+    add_column_to_database,
 )
-from connect4_robot_j4.minimax.minimax_functions import (
+from connect4_robot_j4.minimax import (
     afficher_message,
     confirmer_coup_ia,
     placer_jeton,
@@ -23,10 +25,9 @@ from connect4_robot_j4.minimax.minimax_functions import (
     time_to_play,
     verifier_victoire,
 )
-from connect4_robot_j4.arduino_serial.serial_connection import serial_obj
-from connect4_robot_j4.arduino_serial.arduino_connection import send_to_arduino
-from connect4_robot_j4.camera.camera_handler import initialize_camera
-
+from connect4_robot_j4.arduino_serial import send_to_arduino, serial_obj
+from connect4_robot_j4.camera import initialize_camera
+from connect4_robot_j4.firebase_db import initialize_firebase, send_game_data
 
 def detect_game_start(current_matrix, game_state):
     # Initialization phase
@@ -63,19 +64,27 @@ def detect_game_start(current_matrix, game_state):
             print("Waiting for empty grid to start game...")
     return False
 
-def check_victory(player, game_state):
+def check_victory(player, game_state, game_data):
     # Check if there is a victory
     if verifier_victoire(player):
         game_state.game_over = True
         message = "Congratulations! You won!" if player == 2 else "The computer won!"
         afficher_message(message)
         send_to_arduino(serial_obj, 22 if player == 2 else 21)
+        game_data.game_end_time = datetime.datetime.now()
+        game_data.winner = who_wins(player)  # à adapter à ton code
+        db = initialize_firebase()
+        send_game_data(game_data, db)
         pygame.time.delay(3000)
         return
     elif plateau_plein():
         game_state.game_over = True
         afficher_message("Draw!")
         send_to_arduino(serial_obj, 20)
+        game_data.game_end_time = datetime.datetime.now()
+        game_data.winner = "Draw"
+        db = initialize_firebase()
+        send_game_data(game_data, db)
         pygame.time.delay(3000)
         return
     # Switch between players (1 → 2, 2 → 1)
@@ -86,8 +95,14 @@ def check_victory(player, game_state):
     if game_state.joueur_courant == 1:
         send_to_arduino(serial_obj, 12)
 
+def who_wins(player):
+    if player == 1:
+        return "AI (Red)"
+    elif player == 2:
+        return "Player (Yellow)"
+    return None
 
-def update_from_camera(current_matrix, previous_matrix, game_state):
+def update_from_camera(current_matrix, previous_matrix, game_state, game_data):
     #Updates the board with camera data and handles the game logic.  
     # Check if the move is valid according to the game rules
     if game_state.game_over:
@@ -108,7 +123,8 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
     placer_jeton(column, player)
     pygame.display.update()
 
-    check_victory(player, game_state)
+    add_column_to_database(current_matrix, previous_matrix, game_data)
+    check_victory(player, game_state, game_data)
 
     pygame.display.update()
 
@@ -118,7 +134,7 @@ def update_from_camera(current_matrix, previous_matrix, game_state):
 
     return True
 
-def run_game_loop(game_state):
+def run_game_loop(game_state, game_data):
     # Try to initialize the camera
     camera = initialize_camera()
 
@@ -176,7 +192,7 @@ def run_game_loop(game_state):
 
                         # Attempt to update the game with this new grid
                         detect_game_start(current_matrix, game_state)
-                        game_updated = update_from_camera(current_matrix, game_state.last_stable_matrix, game_state)
+                        game_updated = update_from_camera(current_matrix, game_state.last_stable_matrix, game_state, game_data)
 
                         # Only if the game was successfully updated, update the stable matrix
                         if game_updated:
@@ -226,7 +242,7 @@ def run_game_loop(game_state):
             break
         elif key == ord('r'):  # Reset the game
             print("Resetting game...")
-            game_state = init_game()
+            game_state, game_data = init_game()
 
     # Release the resources
     camera.release()
