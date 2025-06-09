@@ -2,20 +2,31 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import datetime
 import os
-from connect4_robot_j4.game_state import GameState
+from connect4_robot_j4 import GameData
 from connect4_robot_j4.constants import MINIMAX_DEPTH
 
-# 1. Initialization of Firebase Admin SDK
-key_path = os.environ.get("FIREBASE_CRED")
-cred = credentials.Certificate(str(key_path))
-firebase_admin.initialize_app(cred)
-
-# 2. Connection to Firestore
-db = firestore.client()
-
-def get_game_data(game_state: GameState):
+def initialize_firebase():
     """
-    Extracts game data from the GameState object.
+    Initializes the Firebase Admin SDK and connects to Firestore.
+    This function should be called before any other Firebase operations.
+    """
+    # 0. Check if the environment variable is set
+    if "FIREBASE_CRED" not in os.environ:
+        raise EnvironmentError("FIREBASE_CRED environment variable is not set.")
+
+    # 1. Initialization of Firebase Admin SDK
+    key_path = os.environ.get("FIREBASE_CRED")
+    cred = credentials.Certificate(str(key_path))
+    firebase_admin.initialize_app(cred)
+
+    # 2. Connection to Firestore
+    db = firestore.client()
+    
+    return db
+
+def get_game_data(game_state: GameData):
+    """
+    Extracts game data from the GameData object.
     """
     return {
         "game_id": game_state.game_id,
@@ -28,7 +39,7 @@ def get_game_data(game_state: GameState):
         "ai_depth": MINIMAX_DEPTH
     }
 
-def send_game_data(game_state: GameState):
+def send_game_data(game_state: GameData, db):
     """
     Sends game data to the Firestore database.
     """

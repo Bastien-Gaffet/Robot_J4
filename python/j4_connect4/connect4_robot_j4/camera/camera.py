@@ -3,7 +3,7 @@ import math
 import time
 import connect4_robot_j4.constants as cs
 from collections import Counter
-from connect4_robot_j4.minimax.minimax_functions import verifier_coup_ia
+from connect4_robot_j4.minimax import verifier_coup_ia
 import numpy as np
 
 def detect_circles(frame, lower, upper):
@@ -345,10 +345,10 @@ def mouse_callback(event, x, y, flags, param, frame):
             h, s, v = hsv[local_y, local_x]
             print(f"HSV at this point: H={h}, S={s}, V={v}")
 
-def add_column_to_database(current_matrix, previous_matrix, game_state):
+def add_column_to_database(current_matrix, previous_matrix, game_data):
     """
     Adds a column move to the database for the current game state.
     """
     col = get_last_move_column(current_matrix, previous_matrix)
     if col != -1:
-        game_state.moves.append(col + 1)  # de 0-6 vers 1-7
+        game_data.moves.append(col + 1)  # de 0-6 vers 1-7
