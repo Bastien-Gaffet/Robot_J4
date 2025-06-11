@@ -4,7 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "connect4-robot-j4"
+<<<<<<< HEAD
 version = "0.2.0"
+=======
+version = "0.1.1"
+>>>>>>> d504336d7e2ba96d3784afc4710c9c36fc271d2d
 description = "Un Puissance 4 robotisé avec vision par ordinateur, IA et Arduino"
 authors = [
   { name = "Vaucanson Robot J4 Team" }
@@ -15,7 +19,8 @@ dependencies = [
   "opencv-python>=4.5",
   "pygame>=2.0",
   "pyserial>=3.5",
-  "numpy>=1.21"
+  "numpy>=1.21",
+  "firebase-admin>=6.9.0"
 ]
 
 [project.scripts]
