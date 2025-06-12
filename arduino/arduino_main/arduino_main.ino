@@ -432,11 +432,12 @@ void matchNul() {
 
 void loop() {
     if (Serial.available()) {
-        String teststr = Serial.readStringUntil('\n');  // or '\r' depending on your system
-        teststr.trim();
-        int entree = teststr.toInt();
+        String teststr = Serial.readStringUntil('\n'); // Read input until newline
+        teststr.trim(); // Remove any leading or trailing whitespace
+        int entree = teststr.toInt(); // Convert the input to an integer
 
-        if (entree >= 1 && entree <= 7) {           
+        if (entree >= 1 && entree <= 7) {  // If the input is a column number
+            // Call the function to place the token in the specified column 
             poserDansColonne(entree);
         } else {
             switch (entree) {
