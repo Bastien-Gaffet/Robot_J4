@@ -92,8 +92,14 @@ def get_players_data(game_data, db):
     player_elo = player_doc.to_dict().get("elo", 500) if player_doc.exists else 500
     ai_elo = ai_doc.to_dict().get("elo", 500) if ai_doc.exists else 500
 
-    # Détecter si le joueur humain a gagné
-    player_result = 1 if "Player" in winner else 0
+    # Gérer le résultat pour le calcul Elo
+    if "Player" in winner:
+        player_result = 1  # victoire joueur
+    elif "AI" in winner:
+        player_result = 0  # défaite joueur
+    else:
+        # Match nul
+        player_result = 0.5
 
     new_player_elo, new_ai_elo = update_elo(player_elo, ai_elo, ai_depth, player_result)
 
