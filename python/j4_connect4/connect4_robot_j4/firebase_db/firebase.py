@@ -79,7 +79,7 @@ def get_game_data(game_state: GameData):
 def get_players_data(game_data, db):
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     player_pseudo = game_data["player_pseudo"]
-    ai_pseudo = "IA"
+    ai_pseudo = "AI"
     ai_depth = game_data["ai_depth"]  # Niveau IA entre 1 et 7
     winner = game_data["winner"]  # Exemple: "AI (Red)" ou "Player (Yellow)"
 
@@ -140,21 +140,35 @@ def send_game_data(game_state: GameData, db):
         game_data = get_game_data(game_state)
         game_id = game_data["game_id"]
 
-        # 🧠 Récupération centralisée des données joueurs + IA
+        #Récupération centralisée des données joueurs + IA
         data = get_players_data(game_data, db)
         timestamp = data["timestamp"]
 
+        # 🔢 Determine game outcome for stats update
+        player_result = 1 if "Player" in game_data["winner"] else 0 if "AI" in game_data["winner"] else 0.5
+
+        if player_result == 1:
+            player_update_stats = {"wins": firestore.Increment(1)}
+            ai_update_stats = {"losses": firestore.Increment(1)}
+        elif player_result == 0:
+            player_update_stats = {"losses": firestore.Increment(1)}
+            ai_update_stats = {"wins": firestore.Increment(1)}
+        else:
+            player_update_stats = {"draws": firestore.Increment(1)}
+            ai_update_stats = {"draws": firestore.Increment(1)}
+            
         # Envoi de la partie (timestamp natif Firestore)
         game_data["timestamp"] = timestamp
         db.collection("games").document(game_id).set(game_data)
         print(f"[Firebase] Game {game_id} successfully sent to Firestore.")
 
-        # 🔄 Mise à jour joueur
+        #Mise à jour joueur
         player = data["player"]
         if player["doc"].exists:
             player["ref"].update({
                 "elo": player["elo_after"],
-                "elo_history": firestore.ArrayUnion([player["elo_entry"]])
+                "elo_history": firestore.ArrayUnion([player["elo_entry"]]),
+                **player_update_stats
             })
         else:
             start_entry = {
@@ -166,7 +180,10 @@ def send_game_data(game_state: GameData, db):
             player["ref"].set({
                 "pseudo": player["pseudo"],
                 "elo": player["elo_after"],
-                "elo_history": [start_entry, player["elo_entry"]]
+                "elo_history": [start_entry, player["elo_entry"]],
+                "wins": 1 if player_result == 1 else 0,
+                "losses": 1 if player_result == 0 else 0,
+                "draws": 1 if player_result == 0.5 else 0
             })
 
         # 🔄 Mise à jour IA
@@ -174,7 +191,8 @@ def send_game_data(game_state: GameData, db):
         if ai["doc"].exists:
             ai["ref"].update({
                 "elo": ai["elo_after"],
-                "elo_history": firestore.ArrayUnion([ai["elo_entry"]])
+                "elo_history": firestore.ArrayUnion([ai["elo_entry"]]),
+                **ai_update_stats
             })
         else:
             start_entry_ai = {
@@ -186,7 +204,10 @@ def send_game_data(game_state: GameData, db):
             ai["ref"].set({
                 "pseudo": ai["pseudo"],
                 "elo": ai["elo_after"],
-                "elo_history": [start_entry_ai, ai["elo_entry"]]
+                "elo_history": [start_entry_ai, ai["elo_entry"]],
+                "wins": 1 if player_result == 0 else 0,
+                "losses": 1 if player_result == 1 else 0,
+                "draws": 1 if player_result == 0.5 else 0
             })
 
         # ✅ Log
