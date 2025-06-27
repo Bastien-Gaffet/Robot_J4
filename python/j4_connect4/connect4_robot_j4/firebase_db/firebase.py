@@ -4,6 +4,7 @@ import datetime
 import os
 from connect4_robot_j4 import GameData
 from connect4_robot_j4.constants import MINIMAX_DEPTH
+import secrets, string
 
 def initialize_firebase():
     """
@@ -60,6 +61,8 @@ def update_elo(player_elo, ai_elo, ai_level, player_result):
 
     return round(new_player_elo), round(new_ai_elo)
 
+def generate_claim_token():
+    return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
 
 def get_game_data(game_state: GameData):
     """
@@ -179,11 +182,14 @@ def send_game_data(game_state: GameData, db):
 
             player["ref"].set({
                 "pseudo": player["pseudo"],
+                "pseudo_lower": player["pseudo"].lower(),
                 "elo": player["elo_after"],
                 "elo_history": [start_entry, player["elo_entry"]],
                 "wins": 1 if player_result == 1 else 0,
                 "losses": 1 if player_result == 0 else 0,
-                "draws": 1 if player_result == 0.5 else 0
+                "draws": 1 if player_result == 0.5 else 0,
+                "claimed": False,
+                "claim_token": generate_claim_token()
             })
 
         # 🔄 Mise à jour IA
@@ -216,3 +222,25 @@ def send_game_data(game_state: GameData, db):
 
     except Exception as e:
         print(f"[Firebase] Failed to send game data: {e}")
+
+
+        '''from firebase_admin import firestore
+import random, string
+
+def generate_claim_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+
+user = {
+    "pseudo": "Bastien",
+    "pseudo_lower": "bastien",
+    "elo": 500,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "claimed": False,
+    "claim_token": generate_claim_token()
+}
+
+print(f"Token à communiquer au joueur : {user['claim_token']}")
+db.collection("users").document().set(user)
+'''
