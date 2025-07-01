@@ -34,7 +34,7 @@ GRID_UPDATE_INTERVAL = 0.5  # Update interval in seconds
 # Camera settings
 MAX_INDEX = 3  # Maximum index for camera selection
 IP_CAM_URL = "http://192.168.1.55:4747/video"
-USE_IP_CAM = True  # Toggle this to False to disable IP cam check
+USE_IP_CAM = False  # Toggle this to False to disable IP cam check
 PREFERRED_INDEX = None  # Default camera index, non used : None
 
 #MiniMax settings

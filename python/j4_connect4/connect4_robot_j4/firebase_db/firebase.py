@@ -3,7 +3,6 @@ from firebase_admin import credentials, firestore
 import datetime
 import os
 from connect4_robot_j4 import GameData
-from connect4_robot_j4.constants import MINIMAX_DEPTH
 import secrets, string
 
 def initialize_firebase():
@@ -29,6 +28,18 @@ def initialize_firebase():
     except Exception as e:
         print(f"[Firebase] Initialization failed: {e}")
         return None
+
+
+def get_user_doc_by_pseudo(db, pseudo):
+    pseudo_lower = pseudo.lower()
+    users_ref = db.collection("users")
+    query = users_ref.where("pseudo_lower", "==", pseudo_lower).limit(1)
+    docs = query.get()
+
+    if docs:
+        return docs[0].id, docs[0]
+    else:
+        return None, None
 
 def expected_score(player_elo, opponent_elo):
     return 1 / (1 + 10 ** ((opponent_elo - player_elo) / 400))
@@ -64,46 +75,58 @@ def update_elo(player_elo, ai_elo, ai_level, player_result):
 def generate_claim_token():
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
 
-def get_game_data(game_state: GameData):
+def get_game_data(game_data: GameData):
     """
     Extracts game data from the GameData object.
     """
     return {
-        "game_id": game_state.game_id,
+        "game_id": game_data.game_id,
         "timestamp": datetime.datetime.now(datetime.timezone.utc),
-        "duration_seconds": (game_state.game_end_time - game_state.game_start_time).total_seconds(),
-        "first_player": game_state.first_player,
-        "moves": game_state.moves,
-        "winner": game_state.winner,
-        "player_pseudo": game_state.player_pseudo,
-        "ai_depth": MINIMAX_DEPTH
+        "duration_seconds": (game_data.game_end_time - game_data.game_start_time).total_seconds(),
+        "first_player_color": game_data.first_player_color,
+        "moves": game_data.moves,
+        "result": game_data.result,
+        "player1": game_data.player1,
+        "player2": game_data.player2,
+        "player_pseudo": game_data.player_pseudo,
     }
 
-def get_players_data(game_data, db):
+def get_players_data(game_data, db, ai_depth):
+    """
+    Fetches user and AI data from Firestore based on game data.
+    Uses pseudo-based document lookup for the human player (not UID).
+    """
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     player_pseudo = game_data["player_pseudo"]
-    ai_pseudo = "AI"
-    ai_depth = game_data["ai_depth"]  # Niveau IA entre 1 et 7
-    winner = game_data["winner"]  # Exemple: "AI (Red)" ou "Player (Yellow)"
+    ai_pseudo = f"AI ({ai_depth})"
+    ai_uid = "AI"  # fixed document ID for the AI
 
-    player_ref = db.collection("users").document(player_pseudo)
-    ai_ref = db.collection("users").document(ai_pseudo)
+    # Get player UID and document using their pseudo
+    player_uid, player_doc_snapshot = get_user_doc_by_pseudo(db, player_pseudo)
+    if player_uid is None:
+        raise ValueError(f"Player with pseudo '{player_pseudo}' not found in Firestore.")
 
-    player_doc = player_ref.get()
+    player_ref = db.collection("users").document(player_uid)
+    ai_ref = db.collection("users").document(ai_uid)
+
+    # Get latest document snapshots
+    player_doc = player_doc_snapshot
     ai_doc = ai_ref.get()
 
+    # Retrieve Elo ratings
     player_elo = player_doc.to_dict().get("elo", 500) if player_doc.exists else 500
     ai_elo = ai_doc.to_dict().get("elo", 500) if ai_doc.exists else 500
 
-    # Gérer le résultat pour le calcul Elo
-    if "Player" in winner:
-        player_result = 1  # victoire joueur
-    elif "AI" in winner:
-        player_result = 0  # défaite joueur
+    # Determine match outcome
+    result = game_data["result"]  # should match player_pseudo, AI (X), or None
+    if result == player_pseudo:
+        player_result = 1
+    elif result == ai_uid:
+        player_result = 0
     else:
-        # Match nul
-        player_result = 0.5
+        player_result = 0.5  # draw
 
+    # Update Elo ratings
     new_player_elo, new_ai_elo = update_elo(player_elo, ai_elo, ai_depth, player_result)
 
     return {
@@ -134,113 +157,118 @@ def get_players_data(game_data, db):
         }
     }
 
+
 def send_game_data(game_state: GameData, db):
+    """
+    Sends a completed Connect Four game to Firestore and updates player stats.
+    Supports both PvP (player vs player) and PvAI (player vs AI) modes.
+    """
     if db is None:
         print("[Firebase] No database connection. Game data not sent.")
         return
 
     try:
+        # Extract game data from game state
         game_data = get_game_data(game_state)
         game_id = game_data["game_id"]
 
-        #Récupération centralisée des données joueurs + IA
-        data = get_players_data(game_data, db)
+        # Fetch all player-related Firestore documents and data
+        data = get_players_data(game_data, db, game_state.ai_depth)
         timestamp = data["timestamp"]
 
-        # 🔢 Determine game outcome for stats update
-        player_result = 1 if "Player" in game_data["winner"] else 0 if "AI" in game_data["winner"] else 0.5
+        # Determine result of the game
+        result = game_data["result"]  # "draw" or player1_pseudo / player2_pseudo
+        player1 = data["player"]
+        player2 = data["ai"]
 
-        if player_result == 1:
-            player_update_stats = {"wins": firestore.Increment(1)}
-            ai_update_stats = {"losses": firestore.Increment(1)}
-        elif player_result == 0:
-            player_update_stats = {"losses": firestore.Increment(1)}
-            ai_update_stats = {"wins": firestore.Increment(1)}
+        if result == player1["pseudo"]:
+            player_result = 1
+        elif result == player2["pseudo"]:
+            player_result = 0
         else:
-            player_update_stats = {"draws": firestore.Increment(1)}
-            ai_update_stats = {"draws": firestore.Increment(1)}
-            
-        # Envoi de la partie (timestamp natif Firestore)
-        game_data["timestamp"] = timestamp
+            player_result = 0.5
+
+        # Prepare stats updates
+        if player_result == 1:
+            p1_update = {"wins": firestore.Increment(1)}
+            p2_update = {"losses": firestore.Increment(1)}
+        elif player_result == 0:
+            p1_update = {"losses": firestore.Increment(1)}
+            p2_update = {"wins": firestore.Increment(1)}
+        else:
+            p1_update = {"draws": firestore.Increment(1)}
+            p2_update = {"draws": firestore.Increment(1)}
+
+        # ✅ Write the game document
+        game_data["timestamp"] = timestamp  # Use unified timestamp
         db.collection("games").document(game_id).set(game_data)
         print(f"[Firebase] Game {game_id} successfully sent to Firestore.")
 
-        #Mise à jour joueur
-        player = data["player"]
-        if player["doc"].exists:
-            player["ref"].update({
-                "elo": player["elo_after"],
-                "elo_history": firestore.ArrayUnion([player["elo_entry"]]),
-                **player_update_stats
+        # ✅ Update Player 1 (the human user who initiated the game)
+        if player1["doc"].exists:
+            player1["ref"].update({
+                "elo": player1["elo_after"],
+                "elo_history": firestore.ArrayUnion([player1["elo_entry"]]),
+                **p1_update
             })
         else:
             start_entry = {
                 "game_id": "initial",
-                "timestamp": timestamp - datetime.timedelta(seconds=1),  # juste avant la partie
+                "timestamp": timestamp - datetime.timedelta(seconds=1),
                 "elo": 500
             }
-
-            player["ref"].set({
-                "pseudo": player["pseudo"],
-                "pseudo_lower": player["pseudo"].lower(),
-                "elo": player["elo_after"],
-                "elo_history": [start_entry, player["elo_entry"]],
+            player1["ref"].set({
+                "pseudo": player1["pseudo"],
+                "pseudo_lower": player1["pseudo"].lower(),
+                "elo": player1["elo_after"],
+                "elo_history": [start_entry, player1["elo_entry"]],
                 "wins": 1 if player_result == 1 else 0,
                 "losses": 1 if player_result == 0 else 0,
                 "draws": 1 if player_result == 0.5 else 0,
                 "claimed": False,
                 "claim_token": generate_claim_token()
             })
+            print(f"[Token] Claim token for new user '{player1['pseudo']}': {claim_token}")
 
-        # 🔄 Mise à jour IA
-        ai = data["ai"]
-        if ai["doc"].exists:
-            ai["ref"].update({
-                "elo": ai["elo_after"],
-                "elo_history": firestore.ArrayUnion([ai["elo_entry"]]),
-                **ai_update_stats
+        # Update Player 2 (either another human or the AI)
+        if player2["doc"].exists:
+            player2["ref"].update({
+                "elo": player2["elo_after"],
+                "elo_history": firestore.ArrayUnion([player2["elo_entry"]]),
+                **p2_update
             })
         else:
-            start_entry_ai = {
+            start_entry2 = {
                 "game_id": "initial",
                 "timestamp": timestamp - datetime.timedelta(seconds=1),
                 "elo": 500
             }
 
-            ai["ref"].set({
-                "pseudo": ai["pseudo"],
-                "elo": ai["elo_after"],
-                "elo_history": [start_entry_ai, ai["elo_entry"]],
+            opponent_doc = {
+                "pseudo": player2["pseudo"],
+                "elo": player2["elo_after"],
+                "elo_history": [start_entry2, player2["elo_entry"]],
                 "wins": 1 if player_result == 0 else 0,
                 "losses": 1 if player_result == 1 else 0,
                 "draws": 1 if player_result == 0.5 else 0
-            })
+            }
 
-        # ✅ Log
-        print(f"[Elo] {player['pseudo']}: {player['elo_before']} -> {player['elo_after']}")
-        print(f"[Elo] {ai['pseudo']}: {ai['elo_before']} -> {ai['elo_after']}")
+            if not game_state.opponent_is_ai:
+                claim_token = generate_claim_token()
+                opponent_doc.update({
+                    "pseudo_lower": player2["pseudo"].lower(),
+                    "claimed": False,
+                    "claim_token": claim_token
+                })
+
+                # Show the token in the console
+                print(f"[Token] Claim token for new user '{player2['pseudo']}': {claim_token}")
+
+            player2["ref"].set(opponent_doc)
+
+        # Elo logs
+        print(f"[Elo] {player1['pseudo']}: {player1['elo_before']} → {player1['elo_after']}")
+        print(f"[Elo] {player2['pseudo']}: {player2['elo_before']} → {player2['elo_after']}")
 
     except Exception as e:
         print(f"[Firebase] Failed to send game data: {e}")
-
-
-        '''from firebase_admin import firestore
-import random, string
-
-def generate_claim_token():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-
-user = {
-    "pseudo": "Bastien",
-    "pseudo_lower": "bastien",
-    "elo": 500,
-    "wins": 0,
-    "losses": 0,
-    "draws": 0,
-    "claimed": False,
-    "claim_token": generate_claim_token()
-}
-
-print(f"Token à communiquer au joueur : {user['claim_token']}")
-db.collection("users").document().set(user)
-'''
