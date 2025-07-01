@@ -72,7 +72,7 @@ def check_victory(player, game_state, game_data):
         afficher_message(message)
         send_to_arduino(serial_obj, 22 if player == 2 else 21)
         game_data.game_end_time = datetime.datetime.now()
-        game_data.winner = who_wins(player)  # à adapter à ton code
+        game_data.result = who_wins(player, game_data.player_pseudo) 
         db = initialize_firebase()
         send_game_data(game_data, db)
         pygame.time.delay(3000)
@@ -82,7 +82,7 @@ def check_victory(player, game_state, game_data):
         afficher_message("Draw!")
         send_to_arduino(serial_obj, 20)
         game_data.game_end_time = datetime.datetime.now()
-        game_data.winner = "Draw"
+        game_data.result = "Draw"
         db = initialize_firebase()
         send_game_data(game_data, db)
         pygame.time.delay(3000)
@@ -95,11 +95,11 @@ def check_victory(player, game_state, game_data):
     if game_state.joueur_courant == 1:
         send_to_arduino(serial_obj, 12)
 
-def who_wins(player):
+def who_wins(player, player_pseudo):
     if player == 1:
-        return "AI (Red)"
+        return "AI"
     elif player == 2:
-        return "Player (Yellow)"
+        return player_pseudo
     return None
 
 def update_from_camera(current_matrix, previous_matrix, game_state, game_data):
