@@ -5,7 +5,7 @@ import uuid
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import re
-from constants import MINIMAX_DEPTH
+from connect4_robot_j4.constants import MINIMAX_DEPTH
 from connect4_robot_j4 import GameState
 from connect4_robot_j4 import GameData
 from connect4_robot_j4.minimax import(

@@ -29,7 +29,7 @@ def is_ip_cam_available(ip, port, timeout=2):
     except OSError:
         return False
     
-def initialize_camera(use_ip_cam=cs.USE_IP_CAM, ip_cam_url=cs.IP_CAM_URL, preferred_index=None, max_index=cs.MAX_INDEX):
+def initialize_camera(use_ip_cam=cs.USE_IP_CAM, ip_cam_url=cs.IP_CAM_URL, preferred_index=cs.PREFERRED_INDEX, max_index=cs.MAX_INDEX):
     #Tries to open IP camera first (if enabled), then local cameras by index.
     #Returns the first working VideoCapture object, or None if no camera is found.
     print("Initializing the camera...")
