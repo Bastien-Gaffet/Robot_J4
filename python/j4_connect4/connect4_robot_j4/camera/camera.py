@@ -6,7 +6,144 @@ from collections import Counter
 from connect4_robot_j4.minimax import verifier_coup_ia
 import numpy as np
 
+class HSVAutoAdjuster:
+    """Classe pour l'ajustement automatique des seuils HSV selon l'éclairage"""
+    
+    def __init__(self):
+        # Seuils de référence (vos valeurs originales)
+        self.reference_ranges = {
+            'red1': {'lower': cs.LOWER_RED1.copy(), 'upper': cs.UPPER_RED1.copy()},
+            'red2': {'lower': cs.LOWER_RED2.copy(), 'upper': cs.UPPER_RED2.copy()},
+            'yellow1': {'lower': cs.LOWER_YELLOW1.copy(), 'upper': cs.UPPER_YELLOW1.copy()},
+            'yellow2': {'lower': cs.LOWER_YELLOW2.copy(), 'upper': cs.UPPER_YELLOW2.copy()},
+            'yellow3': {'lower': cs.LOWER_YELLOW3.copy(), 'upper': cs.UPPER_YELLOW3.copy()},
+            'yellow4': {'lower': cs.LOWER_YELLOW4.copy(), 'upper': cs.UPPER_YELLOW4.copy()}
+        }
+        
+        # Seuils ajustés (utilisés pour la détection)
+        self.adjusted_ranges = {}
+        self.reset_to_reference()
+        
+        # Paramètres d'auto-ajustement
+        self.last_adjustment = 0
+        self.adjustment_interval = 2.0  # Ajuster toutes les 2 secondes
+        
+    def reset_to_reference(self):
+        """Remettre aux seuils de référence"""
+        for color, ranges in self.reference_ranges.items():
+            self.adjusted_ranges[color] = {
+                'lower': ranges['lower'].copy(),
+                'upper': ranges['upper'].copy()
+            }
+    
+    def analyze_lighting(self, frame):
+        """Analyser les conditions d'éclairage de la ROI"""
+        roi = frame[cs.ROI_Y:cs.ROI_Y + cs.ROI_H, cs.ROI_X:cs.ROI_X + cs.ROI_W]
+        
+        # Conversion en niveaux de gris pour analyser la luminosité
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        mean_brightness = np.mean(gray)
+        
+        # Analyse en HSV pour la saturation
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        mean_saturation = np.mean(hsv[:, :, 1])
+        
+        return mean_brightness, mean_saturation
+    
+    def calculate_adjustments(self, brightness, saturation):
+        """Calculer les ajustements nécessaires selon l'éclairage"""
+        brightness_adj = 0
+        saturation_adj = 0
+        hue_tolerance = 0
+        
+        # Ajustements basés sur la luminosité
+        if brightness < 60:  # Très sombre
+            brightness_adj = 30
+            saturation_adj = -20
+            hue_tolerance = 8
+        elif brightness < 100:  # Sombre
+            brightness_adj = 15
+            saturation_adj = -10
+            hue_tolerance = 5
+        elif brightness > 200:  # Très lumineux
+            brightness_adj = -25
+            saturation_adj = 15
+            hue_tolerance = 3
+        elif brightness > 160:  # Lumineux
+            brightness_adj = -10
+            saturation_adj = 5
+            hue_tolerance = 2
+        
+        # Ajustements basés sur la saturation moyenne
+        if saturation < 50:  # Couleurs délavées
+            saturation_adj -= 15
+            hue_tolerance += 5
+        elif saturation > 150:  # Couleurs très saturées
+            saturation_adj += 10
+            
+        return brightness_adj, saturation_adj, hue_tolerance
+    
+    def apply_adjustments(self, brightness_adj, saturation_adj, hue_tolerance):
+        """Appliquer les ajustements à tous les seuils"""
+        for color_key, ref_ranges in self.reference_ranges.items():
+            lower = ref_ranges['lower'].copy()
+            upper = ref_ranges['upper'].copy()
+            
+            # Ajuster V (luminosité)
+            lower[2] = np.clip(lower[2] + brightness_adj, 0, 255)
+            
+            # Ajuster S (saturation)
+            lower[1] = np.clip(lower[1] + saturation_adj, 0, 255)
+            
+            # Ajuster H (tolérance de teinte)
+            if hue_tolerance > 0:
+                if 'red' in color_key:
+                    if lower[0] < 90:  # Rouge bas (0-10)
+                        lower[0] = max(0, lower[0] - hue_tolerance)
+                        upper[0] = min(180, upper[0] + hue_tolerance)
+                    else:  # Rouge haut (170-180)
+                        lower[0] = max(0, lower[0] - hue_tolerance)
+                        upper[0] = min(180, upper[0] + hue_tolerance)
+                else:  # Jaunes
+                    lower[0] = max(0, lower[0] - hue_tolerance)
+                    upper[0] = min(180, upper[0] + hue_tolerance)
+            
+            self.adjusted_ranges[color_key] = {'lower': lower, 'upper': upper}
+    
+    def auto_adjust(self, frame):
+        """Ajuster automatiquement les seuils selon l'éclairage actuel"""
+        current_time = time.time()
+        
+        # Ne pas ajuster trop fréquemment
+        if current_time - self.last_adjustment < self.adjustment_interval:
+            return False
+        
+        # Analyser l'éclairage
+        brightness, saturation = self.analyze_lighting(frame)
+        
+        # Calculer et appliquer les ajustements
+        brightness_adj, saturation_adj, hue_tolerance = self.calculate_adjustments(brightness, saturation)
+        self.apply_adjustments(brightness_adj, saturation_adj, hue_tolerance)
+        
+        self.last_adjustment = current_time
+        
+        # Debug info (optionnel)
+        print(f"Auto-ajustement: Luminosité={brightness:.0f}, Ajustements: V{brightness_adj:+d} S{saturation_adj:+d} H_tol={hue_tolerance}")
+        
+        return True
+    
+    def get_adjusted_ranges(self):
+        """Obtenir les seuils ajustés"""
+        return self.adjusted_ranges
+
+# Instance globale de l'ajusteur automatique
+hsv_adjuster = HSVAutoAdjuster()
+
 def detect_circles(frame, lower, upper):
+    """Version modifiée pour utiliser les seuils ajustés automatiquement"""
+    # Appliquer l'ajustement automatique
+    hsv_adjuster.auto_adjust(frame)
+    
     # Detects circles of a specific color in the image
     roi = frame[cs.ROI_Y:cs.ROI_Y + cs.ROI_H, cs.ROI_X:cs.ROI_X + cs.ROI_W]
     roi = cv2.GaussianBlur(roi, (5, 5), 0)
@@ -28,15 +165,19 @@ def detect_circles(frame, lower, upper):
     return centers, mask
 
 def detect_tokens(frame):
-    # Detect all the red and yellow tokens in the image
-    red_centers1, _ = detect_circles(frame, cs.LOWER_RED1, cs.UPPER_RED1)
-    red_centers2, _ = detect_circles(frame, cs.LOWER_RED2, cs.UPPER_RED2)
+    """Version modifiée pour utiliser les seuils ajustés automatiquement"""
+    # Obtenir les seuils ajustés
+    adjusted = hsv_adjuster.get_adjusted_ranges()
+    
+    # Detect all the red and yellow tokens with adjusted thresholds
+    red_centers1, _ = detect_circles(frame, adjusted['red1']['lower'], adjusted['red1']['upper'])
+    red_centers2, _ = detect_circles(frame, adjusted['red2']['lower'], adjusted['red2']['upper'])
     red_centers = red_centers1 + red_centers2
 
-    yellow_centers1, _ = detect_circles(frame, cs.LOWER_YELLOW1, cs.UPPER_YELLOW1)
-    yellow_centers2, _ = detect_circles(frame, cs.LOWER_YELLOW2, cs.UPPER_YELLOW2)
-    yellow_centers3, _ = detect_circles(frame, cs.LOWER_YELLOW3, cs.UPPER_YELLOW3)
-    yellow_centers4, _ = detect_circles(frame, cs.LOWER_YELLOW4, cs.UPPER_YELLOW4)
+    yellow_centers1, _ = detect_circles(frame, adjusted['yellow1']['lower'], adjusted['yellow1']['upper'])
+    yellow_centers2, _ = detect_circles(frame, adjusted['yellow2']['lower'], adjusted['yellow2']['upper'])
+    yellow_centers3, _ = detect_circles(frame, adjusted['yellow3']['lower'], adjusted['yellow3']['upper'])
+    yellow_centers4, _ = detect_circles(frame, adjusted['yellow4']['lower'], adjusted['yellow4']['upper'])
     yellow_centers = yellow_centers1 + yellow_centers2 + yellow_centers3 + yellow_centers4
 
     # Creating an empty grid
@@ -64,6 +205,27 @@ def detect_tokens(frame):
             grid[(row, col)] = "yellow"
 
     return grid
+
+def get_detection_debug_info():
+    """Obtenir les informations de debug sur les ajustements actuels"""
+    adjusted = hsv_adjuster.get_adjusted_ranges()
+    return {
+        'red1_lower': adjusted['red1']['lower'].tolist(),
+        'red1_upper': adjusted['red1']['upper'].tolist(),
+        'yellow1_lower': adjusted['yellow1']['lower'].tolist(),
+        'yellow1_upper': adjusted['yellow1']['upper'].tolist(),
+    }
+
+def reset_hsv_adjustments():
+    """Remettre les seuils HSV aux valeurs de référence"""
+    hsv_adjuster.reset_to_reference()
+    print("Seuils HSV remis aux valeurs de référence")
+
+def force_hsv_adjustment(frame):
+    """Forcer un ajustement immédiat des seuils HSV"""
+    return hsv_adjuster.auto_adjust(frame)
+
+# === Le reste de vos fonctions reste identique ===
 
 def overlay_on_camera(frame, grid):
     # Overlay the detected grid on the camera image
@@ -192,7 +354,7 @@ def is_valid_game_move(current_matrix, previous_matrix, game_state):
     # Convert last_player to an integer
     player_num = 1 if last_player == "red" else 2 if last_player == "yellow" else None
 
-    # Check if it is indeed this player’s turn
+    # Check if it is indeed this player's turn
     if player_num != game_state.joueur_courant:
         print(f"Detection ignored: it is the player's turn {game_state.joueur_courant}, but {player_num} has been detected")
         return False, None, None
@@ -216,7 +378,7 @@ def count_tokens(matrix):
 
 def is_valid_move(previous_matrix, current_matrix):
     if previous_matrix is None:
-        # If it’s the first grid, it must be empty
+        # If it's the first grid, it must be empty
         return all(all(cell == 0 for cell in row) for row in current_matrix)
 
     previous_count = count_tokens(previous_matrix)
@@ -262,7 +424,7 @@ def get_last_player(current_matrix, previous_matrix):
     # Iterate through each column
     for row in range(cs.ROWS):
         for col in range(cs.COLS):
-            # If a token is found in the current matrix that wasn’t there before
+            # If a token is found in the current matrix that wasn't there before
             if previous_matrix[row][col] == 0 and current_matrix[row][col] != 0:
                 # Identify the player based on the value
                 if current_matrix[row][col] == 1:
@@ -344,6 +506,10 @@ def mouse_callback(event, x, y, flags, param, frame):
             hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
             h, s, v = hsv[local_y, local_x]
             print(f"HSV at this point: H={h}, S={s}, V={v}")
+            
+            # Afficher aussi les informations d'ajustement actuelles
+            debug_info = get_detection_debug_info()
+            print(f"Seuils actuels - Rouge: {debug_info['red1_lower']} à {debug_info['red1_upper']}")
 
 def add_column_to_database(current_matrix, previous_matrix, game_data):
     """
