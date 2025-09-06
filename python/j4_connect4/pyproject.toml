@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "connect4-robot-j4"
-version = "1.0.1"
+version = "v1.1.0-beta.1"
 description = "Un Puissance 4 robotisé avec vision par ordinateur, IA et Arduino"
 authors = [
   { name = "Vaucanson Robot J4 Team" }
