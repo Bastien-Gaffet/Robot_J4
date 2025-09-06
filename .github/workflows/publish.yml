@@ -23,29 +23,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install build tool
-        run: pip install build toml
-
-      - name: Extract version from tag
-        id: get_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Detected version: $VERSION"
-
-      - name: Update version in pyproject.toml
-        run: |
-          FILE="python/j4_connect4/pyproject.toml"
-          echo "Updating version in $FILE to $VERSION"
-          cat <<EOF > update_version.py
-          import toml
-          
-          file = "$FILE"
-          data = toml.load(file)
-          data['project']['version'] = "$VERSION"
-          with open(file, 'w') as f:
-              toml.dump(data, f)
-          EOF
-          python update_version.py
+        run: pip install build
 
       - name: Build the package
         run: python -m build python/j4_connect4
