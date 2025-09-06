@@ -3,29 +3,54 @@ name: Upload Python Package connect4_robot_j4 to PyPI
 on:
   push:
     tags:
-      - "v*"
+      - "v*"  # Déclenche sur les tags (ex: v1.0.3)
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: pypi
+    permissions:
+      id-token: write  # ✅ Requis pour OIDC (Trusted Publishing)
+      contents: read
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install build
-        run: pip install build
+      - name: Install build tool
+        run: pip install build toml
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
+
+      - name: Update version in pyproject.toml
+        run: |
+          FILE="python/j4_connect4/pyproject.toml"
+          echo "Updating version in $FILE to $VERSION"
+          cat <<EOF > update_version.py
+import toml
+file = "$FILE"
+data = toml.load(file)
+data['project']['version'] = "${VERSION}"
+with open(file, 'w') as f:
+    toml.dump(data, f)
+EOF
+          python update_version.py
 
       - name: Build the package
         run: python -m build python/j4_connect4
 
-      - name: Publish to PyPI
+      - name: Publish to PyPI via Trusted Publishing
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: python/j4_connect4/dist
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: true
