@@ -3,14 +3,14 @@ name: Upload Python Package connect4_robot_j4 to PyPI
 on:
   push:
     tags:
-      - "v*"  # Déclenche sur les tags (ex: v1.0.3)
+      - "v*" # Déclenche sur les tags (ex: v1.0.3)
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write  # ✅ Requis pour OIDC (Trusted Publishing)
+      id-token: write # ✅ Requis pour OIDC (Trusted Publishing)
       contents: read
 
     steps:
@@ -37,13 +37,14 @@ jobs:
           FILE="python/j4_connect4/pyproject.toml"
           echo "Updating version in $FILE to $VERSION"
           cat <<EOF > update_version.py
-import toml
-file = "$FILE"
-data = toml.load(file)
-data['project']['version'] = "${VERSION}"
-with open(file, 'w') as f:
-    toml.dump(data, f)
-EOF
+          import toml
+          
+          file = "$FILE"
+          data = toml.load(file)
+          data['project']['version'] = "$VERSION"
+          with open(file, 'w') as f:
+              toml.dump(data, f)
+          EOF
           python update_version.py
 
       - name: Build the package
