@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture du projet Robot J4</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --line: #d6d6d6;
+    --accent: #1f4e79;
+    --accent-soft: #eaf0f7;
+    --node: #f6f8fa;
+    --node-border: #c4ccd6;
+    --code-bg: #f3f4f6;
+    --max: 900px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: #fff;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    font-size: 17px;
+  }
+  main {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+  h1, h2, h3 { line-height: 1.25; color: var(--ink); font-weight: 600; }
+  h1 {
+    font-size: 2.1rem;
+    margin: 0 0 .4em;
+    padding-bottom: .3em;
+    border-bottom: 3px solid var(--accent);
+  }
+  h2 {
+    font-size: 1.5rem;
+    margin: 2.4em 0 .7em;
+    padding-bottom: .2em;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 { font-size: 1.2rem; margin: 1.8em 0 .5em; color: var(--accent); }
+  p { margin: .7em 0; }
+  .lead {
+    color: var(--muted);
+    font-size: 1.02rem;
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 18px;
+    margin: 1.2em 0 1.8em;
+  }
+  .pipeline-line {
+    font-weight: 600;
+    text-align: center;
+    background: var(--node);
+    border: 1px solid var(--node-border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 1.2em 0;
+  }
+  a { color: var(--accent); }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: var(--code-bg);
+    padding: .12em .4em;
+    border-radius: 4px;
+    font-size: .88em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2em 0;
+    font-size: .95rem;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--accent-soft); font-weight: 600; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  td.center, th.center { text-align: center; white-space: nowrap; }
+  blockquote {
+    margin: 1.2em 0;
+    padding: 2px 18px;
+    border-left: 4px solid var(--node-border);
+    color: var(--muted);
+    background: #fafbfc;
+  }
+  ul, ol { padding-left: 1.4em; }
+  li { margin: .35em 0; }
+
+  /* Diagrammes en CSS, sans dependance externe */
+  figure { margin: 1.6em 0; }
+  figcaption {
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+    margin-top: .6em;
+    font-style: italic;
+  }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+  }
+  .node {
+    background: var(--node);
+    border: 1px solid var(--node-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: center;
+    font-size: .9rem;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .node strong { display: block; }
+  .node .sub { color: var(--muted); font-size: .82em; margin-top: 2px; }
+  .node.accent { background: var(--accent-soft); border-color: var(--accent); }
+  .arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    color: var(--accent);
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .arrow.down { justify-content: center; padding: 6px 0; }
+  .layer {
+    border: 1.5px solid var(--node-border);
+    border-radius: 8px;
+    padding: 14px;
+    margin: 0;
+    background: #fff;
+  }
+  .layer-title {
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+    color: var(--accent);
+  }
+  .layer .flow { gap: 12px; }
+  .note-link {
+    text-align: center;
+    color: var(--muted);
+    font-size: .86rem;
+    font-style: italic;
+    margin-top: 8px;
+  }
+  pre.tree {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px;
+    overflow: auto;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .flow { flex-direction: column; align-items: center; }
+    .arrow { transform: rotate(90deg); padding: 6px 0; }
+  }
+  @media print {
+    body { font-size: 11pt; }
+    main { padding: 0; max-width: none; }
+    h2 { page-break-after: avoid; }
+    figure, table { page-break-inside: avoid; }
+    a { color: var(--ink); text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Architecture du projet Robot J4</h1>
+
+<p class="lead">
+Cartographie technique et pédagogique du projet Robot J4 : rôle de chaque dossier,
+emplacement de chaque module (vision, algorithme, communication série, LEDs, moteurs,
+logique de jeu), organisation des échanges entre les couches, et lecture de l'ensemble
+avec les outils conceptuels des Sciences de l'Ingénieur (SII).
+</p>
+
+<h2>1. Vue d'ensemble</h2>
+
+<p>
+<strong>Robot J4</strong> est un bras robotisé (base mécanique <em>BCN3D Moveo</em>) qui
+joue au <strong>Puissance&nbsp;4</strong> contre un humain, de façon autonome. Le système
+combine une <strong>vision par ordinateur</strong> qui lit le plateau réel, un
+<strong>algorithme de décision Minimax</strong> qui choisit le coup, et une
+<strong>commande embarquée Arduino</strong> qui pilote les moteurs, la pince et
+l'éclairage LED.
+</p>
+
+<p>Le pipeline complet, d'une partie au déplacement d'un jeton :</p>
+
+<div class="pipeline-line">
+Caméra &rarr; Vision (OpenCV) &rarr; Matrice 6&times;7 &rarr; Logique de jeu &rarr;
+Minimax &rarr; Liaison série UART &rarr; Arduino &rarr; Moteurs / Pince / LEDs
+</div>
+
+<p>
+À chaque tour, la caméra <strong>referme la boucle</strong> : le robot ne suppose pas
+avoir joué, il <em>vérifie</em> par l'image que le jeton attendu est bien tombé dans la
+bonne colonne avant de poursuivre.
+</p>
+
+<figure>
+  <div class="flow">
+    <div class="node accent"><strong>Caméra</strong><span class="sub">USB / IP</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><strong>Vision OpenCV</strong><span class="sub">camera/</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><strong>Matrice 6&times;7</strong><span class="sub">état du plateau</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><strong>Logique de jeu</strong><span class="sub">game_loop.py</span></div>
+  </div>
+  <div class="arrow down">&darr;</div>
+  <div class="flow">
+    <div class="node"><strong>Minimax alpha-bêta</strong><span class="sub">minimax_functions.py</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><strong>Liaison série UART</strong><span class="sub">arduino_serial/</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><strong>Arduino</strong><span class="sub">arduino_main.ino</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node accent"><strong>Moteurs / Pince / LEDs</strong></div>
+  </div>
+  <p class="note-link">La logique de jeu alimente aussi l'interface Pygame et la base Firebase.</p>
+  <figcaption>Figure 1 &mdash; Flux de données du système.</figcaption>
+</figure>
+
+<p>
+Le projet se découpe en <strong>trois couches</strong> qui dialoguent par la liaison série.
+</p>
+
+<figure>
+  <div class="layer">
+    <div class="layer-title">PC &mdash; Python</div>
+    <div class="flow">
+      <div class="node">Vision<span class="sub">OpenCV</span></div>
+      <div class="node">Logique + IA<span class="sub">Minimax / Pygame</span></div>
+      <div class="node">Persistance<span class="sub">Firebase</span></div>
+    </div>
+  </div>
+  <div class="arrow down">&darr;</div>
+  <div class="layer">
+    <div class="layer-title">Liaison série UART (9600 bauds)</div>
+    <div class="flow">
+      <div class="node accent">Protocole d'entiers<span class="sub">1-7, 8, 9, 12, 13, 20-22</span></div>
+    </div>
+  </div>
+  <div class="arrow down">&darr;</div>
+  <div class="layer">
+    <div class="layer-title">Arduino &mdash; C++</div>
+    <div class="flow">
+      <div class="node">Steppers + servo<span class="sub">cinématique</span></div>
+      <div class="node">LEDs NeoPixel</div>
+    </div>
+  </div>
+  <figcaption>Figure 2 &mdash; Architecture en trois couches.</figcaption>
+</figure>
+
+<h2>2. Table de correspondance module / fichier</h2>
+
+<p>Réponse directe à la question : où se trouve le module qui réalise une fonction donnée ?</p>
+
+<table>
+  <thead>
+    <tr><th>Fonction / module</th><th>Emplacement principal</th><th>Rôle</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Vision par ordinateur</td><td><code>connect4_robot_j4/camera/camera.py</code></td><td>Détection des jetons (HSV), stabilisation, conversion en matrice</td></tr>
+    <tr><td>Capture caméra</td><td><code>camera/camera_handler.py</code></td><td>Ouverture caméra USB/IP, image de secours</td></tr>
+    <tr><td>Calibration couleurs</td><td><code>camera/auto_calibrated.py</code></td><td>Réglage interactif des seuils HSV</td></tr>
+    <tr><td>Algorithme de décision (IA)</td><td><code>minimax/minimax_functions.py</code></td><td>Minimax + élagage alpha-bêta + heuristique</td></tr>
+    <tr><td>Logique et règles du jeu</td><td><code>minimax/minimax_functions.py</code></td><td>Plateau, gravité, détection de victoire</td></tr>
+    <tr><td>Orchestration de la partie</td><td><code>game_loop.py</code></td><td>Boucle principale : vision &rarr; décision &rarr; action</td></tr>
+    <tr><td>Initialisation de partie</td><td><code>core.py</code></td><td>Création de l'état, pseudo joueur, tirage du premier joueur</td></tr>
+    <tr><td>État d'exécution</td><td><code>game_state.py</code></td><td>Variables vivantes de la partie en cours</td></tr>
+    <tr><td>Données de partie</td><td><code>game_data.py</code></td><td>Données archivées (coups, résultat, durée)</td></tr>
+    <tr><td>Communication série</td><td><code>arduino_serial/</code></td><td>Détection du port, envoi des commandes</td></tr>
+    <tr><td>Commande du robot</td><td><code>arduino/arduino_main/arduino_main.ino</code></td><td>Moteurs, pince, LEDs, interprétation des commandes</td></tr>
+    <tr><td>LEDs (bandeau)</td><td><code>arduino_main.ino</code> + <code>arduino/led/</code>, <code>arduino/testled/</code></td><td>Pilotage NeoPixel ; outils de test du bandeau</td></tr>
+    <tr><td>Réglage des positions moteur</td><td><code>arduino/arduino_position/</code></td><td>Déplacement libre et retour de position (calibration)</td></tr>
+    <tr><td>Interface graphique</td><td><code>minimax/minimax_functions.py</code></td><td>Plateau virtuel Pygame, animations, messages</td></tr>
+    <tr><td>Constantes / configuration</td><td><code>constants.py</code></td><td>Seuils HSV, ROI, profondeur Minimax, caméra</td></tr>
+    <tr><td>Persistance et classement Elo</td><td><code>firebase_db/firebase.py</code></td><td>Envoi des parties à Firestore, calcul Elo</td></tr>
+    <tr><td>Maintenance base de données</td><td><code>python/firebase/</code></td><td>Scripts d'administration Firestore</td></tr>
+    <tr><td>IA expérimentale (RL)</td><td><code>python/AI/</code></td><td>Apprentissage par renforcement (PyTorch, DQN) &mdash; expérimental</td></tr>
+    <tr><td>Mécanique et CAO</td><td><code>docs/BCN3D-Moveo/</code></td><td>Fichiers STL, CAO SolidWorks, nomenclature, manuel</td></tr>
+    <tr><td>Point d'entrée du programme</td><td><code>main.py</code></td><td>Commande <code>connect4</code> : initialisation puis boucle de jeu</td></tr>
+  </tbody>
+</table>
+
+<h2>3. Description par module fonctionnel</h2>
+
+<h3>3.1 Vision par ordinateur</h3>
+<p><strong>Dossier :</strong> <code>connect4_robot_j4/camera/</code></p>
+<p>
+C'est l'œil du robot. À partir du flux vidéo, ce module reconstruit l'état du plateau
+sous forme d'une <strong>matrice 6&times;7</strong> (0 = vide, 1 = jeton rouge,
+2 = jeton jaune).
+</p>
+<table>
+  <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>camera.py</code></td><td>Cœur de la détection : reconnaissance des jetons par couleur, stabilisation, validation, conversion en matrice</td></tr>
+    <tr><td><code>camera_handler.py</code></td><td>Gestion matérielle de la caméra (USB ou IP), image de secours si aucune caméra</td></tr>
+    <tr><td><code>auto_calibrated.py</code></td><td>Outil de calibration interactive des seuils de couleur</td></tr>
+  </tbody>
+</table>
+<p><strong>Principe de fonctionnement.</strong></p>
+<ol>
+  <li>L'image est convertie en espace <strong>HSV</strong> ; deux familles de couleurs sont recherchées (rouge et jaune), avec plusieurs plages de seuils par couleur (<code>constants.py</code>).</li>
+  <li>Un ajusteur <strong>adapte automatiquement les seuils</strong> à la luminosité ambiante (sombre, lumineux, couleurs délavées) toutes les deux secondes, ce qui rend la détection robuste sous éclairages variables.</li>
+  <li>La détection isole les pastilles colorées (filtres morphologiques, contours, test de <strong>circularité</strong> et d'aire), puis les range dans une grille <code>(ligne, colonne)</code>.</li>
+  <li>La stabilisation lisse le bruit par <strong>vote majoritaire</strong> sur un tampon des dernières images : un jeton n'est validé que s'il est vu de façon stable.</li>
+  <li>Une validation vérifie la <strong>règle de gravité</strong> (pas de jeton flottant) et garantit qu'<strong>un seul</strong> jeton a été ajouté entre deux états, ce qui filtre les erreurs de détection et les mains qui passent devant la grille.</li>
+</ol>
+<p>
+<strong>Entrées :</strong> images de la caméra. <strong>Sorties :</strong> matrice 6&times;7
+validée, colonne et joueur du dernier coup. <strong>Dépend de :</strong> <code>constants.py</code>
+(seuils, ROI) et du module <code>minimax</code> (pour vérifier que le coup détecté
+correspond au coup attendu de l'IA).
+</p>
+
+<h3>3.2 Logique et règles du jeu</h3>
+<p><strong>Fichiers :</strong> <code>minimax/minimax_functions.py</code>, <code>game_loop.py</code>, <code>core.py</code>, <code>game_state.py</code>, <code>game_data.py</code></p>
+<p>
+Le <strong>plateau de référence</strong> est un tableau NumPy 6&times;7 maintenu dans
+<code>minimax_functions.py</code>. Les fonctions de règles y vivent : placement d'un jeton
+(avec animation), validité d'un coup, détection de victoire (quatre alignements :
+horizontal, vertical, deux diagonales), plateau plein.
+</p>
+<p>
+<strong><code>game_loop.py</code></strong> est le chef d'orchestre. Sa boucle principale
+exécute en continu : lecture d'une image, détection, stabilisation, comparaison à l'état
+précédent, puis, si un coup valide est détecté, mise à jour du jeu et bascule de joueur.
+Elle gère aussi :
+</p>
+<ul>
+  <li>le <strong>démarrage</strong> : attente d'une grille vide stable, tirage du premier joueur, déclenchement de la première séquence robot ;</li>
+  <li>la <strong>mise à jour depuis la caméra</strong> : validation du coup, mise à jour de l'affichage, archivage du coup, test de victoire, puis main à l'IA si c'est son tour ;</li>
+  <li>la <strong>fin de partie</strong> : message, signal LED, envoi des données à Firebase.</li>
+</ul>
+<p>
+<strong><code>core.py</code></strong> prépare une partie : création de l'état, saisie du
+pseudo du joueur, tirage aléatoire du premier joueur, profondeur de l'IA.
+</p>
+<p>
+<strong><code>game_state.py</code> / <code>game_data.py</code></strong> séparent deux notions :
+<code>GameState</code> = état vivant (matrices courantes, joueur courant, attente de
+détection) ; <code>GameData</code> = données à archiver (identifiant de partie, coups joués,
+résultat, durées).
+</p>
+<p><strong>Convention de couleurs :</strong> joueur <strong>1 = rouge = IA</strong>,
+joueur <strong>2 = jaune = humain</strong>.</p>
+
+<h3>3.3 Algorithme de décision &mdash; Minimax</h3>
+<p><strong>Fichier :</strong> <code>minimax/minimax_functions.py</code></p>
+<p>Le cœur intelligent du robot. À son tour, l'IA explore l'arbre des coups possibles jusqu'à une certaine profondeur et choisit le coup optimal.</p>
+<ul>
+  <li><strong>Minimax</strong> avec <strong>élagage alpha-bêta</strong> : on coupe les branches qui ne peuvent plus changer la décision, ce qui accélère fortement l'exploration.</li>
+  <li><strong>Heuristique :</strong> le plateau est noté en additionnant le score de toutes les fenêtres de quatre cases &mdash; un alignement de trois avec une case libre vaut beaucoup, une menace adverse est pénalisée &mdash; avec un <strong>bonus pour le centre</strong>.</li>
+  <li><strong>États terminaux :</strong> victoire = plus ou moins un million, nul = zéro.</li>
+  <li><strong>Optimisation :</strong> les colonnes sont explorées <strong>du centre vers les bords</strong>, ce qui améliore l'efficacité de l'élagage.</li>
+  <li><strong>Profondeur :</strong> sept coups par défaut (<code>constants.py</code>), réduite en fin de partie.</li>
+</ul>
+<p>
+Le calcul produit le coup, l'affiche, puis l'<strong>envoie à l'Arduino</strong> ; le robot
+joue physiquement, et la caméra confirme ensuite que le coup attendu a bien été réalisé.
+</p>
+
+<h3>3.4 Communication série</h3>
+<p><strong>Dossier :</strong> <code>arduino_serial/</code></p>
+<p>Le pont entre le PC et le robot, via <strong>UART</strong> (port série, 9600 bauds, 8N1).</p>
+<table>
+  <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>arduino_connection.py</code></td><td>Repérage du port (mots-clés : Arduino, CH340, FTDI, CP210x), ouverture du port, envoi d'un message</td></tr>
+    <tr><td><code>serial_connection.py</code></td><td>Crée l'objet série partagé une seule fois au démarrage</td></tr>
+  </tbody>
+</table>
+<p>
+La communication repose sur un <strong>protocole d'entiers</strong> simple : le PC envoie un
+nombre, l'Arduino l'interprète comme une action (voir Annexe&nbsp;A). Si aucun Arduino n'est
+détecté, le jeu <strong>continue sans la partie physique</strong> (mode dégradé), utile pour
+développer la vision et l'IA sans le robot.
+</p>
+
+<h3>3.5 Commande du robot &mdash; Arduino</h3>
+<p><strong>Dossier :</strong> <code>arduino/</code></p>
+<p>C'est la partie <strong>embarquée</strong> (C++ / Arduino), qui transforme une commande reçue en mouvements réels et en signaux lumineux.</p>
+<table>
+  <thead><tr><th>Programme</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>arduino_main/</code></td><td>Programme de jeu. Pilote six moteurs pas-à-pas, le servo de la pince et le bandeau LED. Seul programme nécessaire pour jouer.</td></tr>
+    <tr><td><code>arduino_position/</code></td><td>Déplace librement le bras et renvoie sa position : sert à relever les positions en pas de chaque colonne (mise au point).</td></tr>
+    <tr><td><code>led/</code></td><td>Vérifie la communication couleur avec le bandeau LED.</td></tr>
+    <tr><td><code>testled/</code></td><td>A servi à détecter le nombre de LEDs du bandeau.</td></tr>
+  </tbody>
+</table>
+<p><strong>Dans le programme de jeu :</strong></p>
+<ul>
+  <li><strong>Moteurs :</strong> six axes pilotés via la bibliothèque <strong>AccelStepper</strong> (vitesse et accélération réglées par axe). Les mouvements sont <strong>séquencés en phases</strong> (certains axes démarrent à 20&nbsp;% de la course des autres) pour une trajectoire fluide et sûre.</li>
+  <li><strong>Cinématique de jeu :</strong> prise du jeton au distributeur, position de transit, placement au-dessus de la colonne et dépose, avec un jeu de positions calibrées <strong>par colonne</strong>.</li>
+  <li><strong>Pince :</strong> servomoteur ouvert/fermé pour saisir et lâcher le jeton.</li>
+  <li><strong>LEDs :</strong> bandeau <strong>Adafruit NeoPixel</strong> (120 LEDs). Des fonctions de couleur fixe et clignotante signalent le <strong>tour courant</strong> (rouge = IA, jaune = humain) et l'<strong>issue de la partie</strong> (clignotement à la victoire ou au nul).</li>
+</ul>
+
+<h3>3.6 Interface graphique</h3>
+<p><strong>Fichier :</strong> <code>minimax/minimax_functions.py</code> (partie Pygame)</p>
+<p>
+Une fenêtre <strong>Pygame</strong> affiche un Puissance&nbsp;4 virtuel qui reflète l'état réel :
+grille bleue, jetons rouges et jaunes, <strong>animation de chute</strong>, numéros de
+colonnes, et une zone de <strong>messages</strong> (réflexion de l'ordinateur, annonce du
+coup choisi, résultat). C'est le miroir numérique du plateau physique, utile en démonstration
+et pour suivre la partie.
+</p>
+<blockquote>
+Une fenêtre OpenCV affiche en parallèle le flux caméra annoté (zone d'intérêt, grille
+détectée, joueur courant, compte à rebours avant la prochaine analyse). Touches : q pour
+quitter, r pour réinitialiser la partie.
+</blockquote>
+
+<h3>3.7 Persistance et classement Elo</h3>
+<p><strong>Fichier :</strong> <code>firebase_db/firebase.py</code> &mdash; <strong>Scripts d'administration :</strong> <code>python/firebase/</code></p>
+<p>À la fin de chaque partie, les données sont envoyées à <strong>Firebase Firestore</strong> :</p>
+<ul>
+  <li>enregistrement de la partie (coups, résultat, durée, couleurs, joueurs) ;</li>
+  <li>un système de <strong>classement Elo</strong> met à jour le score du joueur <strong>et</strong> de l'IA, avec un facteur dépendant du niveau de l'IA (sa profondeur Minimax) ;</li>
+  <li>les nouveaux joueurs reçoivent un <strong>jeton de revendication</strong> pour rattacher leur pseudo à un compte.</li>
+</ul>
+<p>
+La connexion nécessite une variable d'environnement pointant vers la clé de service. Sans
+elle, l'enregistrement est simplement ignoré (le jeu fonctionne quand même). Les scripts
+d'administration sont des utilitaires de maintenance de la base.
+</p>
+
+<h3>3.8 IA expérimentale &mdash; Apprentissage par renforcement</h3>
+<p><strong>Dossier :</strong> <code>python/AI/</code> &mdash; <em>branche expérimentale, non utilisée en partie réelle</em></p>
+<p>
+Une exploration parallèle : entraîner une IA <strong>par apprentissage par renforcement</strong>
+(réseau de neurones DQN, PyTorch) plutôt que par Minimax. À ne pas confondre avec l'IA Minimax
+du jeu (section 3.3), qui est celle réellement embarquée.
+</p>
+<table>
+  <thead><tr><th>Sous-dossier</th><th>Contenu</th></tr></thead>
+  <tbody>
+    <tr><td><code>play_connect4/</code></td><td>Jouer et tester différents adversaires (Minimax, aléatoire, IA entraînée)</td></tr>
+    <tr><td><code>train_AI/Minimax/</code></td><td>Entraînement DQN contre un adversaire Minimax</td></tr>
+    <tr><td><code>train_AI/Selfplayer/</code></td><td>Entraînement par self-play (l'IA joue contre elle-même)</td></tr>
+    <tr><td><code>train_AI/randomplayer/</code></td><td>Entraînement contre adversaire aléatoire / negamax</td></tr>
+  </tbody>
+</table>
+<p>
+Les modèles entraînés sont stockés aux formats PyTorch et ONNX ; un outil de visualisation
+permet de suivre l'apprentissage. Cette piste n'a pas encore donné de résultats fiables
+contre un humain.
+</p>
+
+<h3>3.9 Mécanique et CAO</h3>
+<p><strong>Dossier :</strong> <code>docs/BCN3D-Moveo/</code></p>
+<p>Toute la base matérielle du bras, dérivée du projet open-source <strong>BCN3D Moveo</strong> :</p>
+<table>
+  <thead><tr><th>Sous-dossier</th><th>Contenu</th></tr></thead>
+  <tbody>
+    <tr><td><code>CAD files/</code></td><td>Modèles SolidWorks : pièces et assemblages</td></tr>
+    <tr><td><code>STL files/</code></td><td>Fichiers STL prêts à imprimer (articulations, base, pince, boîtier électronique)</td></tr>
+    <tr><td><code>BOM/</code></td><td>Nomenclature (liste des composants)</td></tr>
+    <tr><td><code>USER MANUAL/</code></td><td>Manuel de montage du bras</td></tr>
+  </tbody>
+</table>
+
+<h2>Annexe A &mdash; Protocole de communication série</h2>
+<p>
+Le PC envoie un <strong>entier</strong> sur le port série ; l'Arduino l'interprète. C'est
+l'interface contractuelle entre le logiciel et le matériel.
+</p>
+<table>
+  <thead><tr><th class="center">Code envoyé</th><th>Action côté Arduino</th><th>Sens</th></tr></thead>
+  <tbody>
+    <tr><td class="center">1 à 7</td><td>Déposer dans la colonne</td><td>Déposer un jeton dans la colonne indiquée</td></tr>
+    <tr><td class="center">8</td><td>LEDs rouges</td><td>Tour de l'IA</td></tr>
+    <tr><td class="center">9</td><td>LEDs jaunes</td><td>Tour du joueur</td></tr>
+    <tr><td class="center">12</td><td>Position de transit</td><td>Aller en position de déplacement</td></tr>
+    <tr><td class="center">13</td><td>Prendre un jeton</td><td>Saisir un jeton au distributeur</td></tr>
+    <tr><td class="center">20</td><td>Match nul</td><td>Clignotement orange</td></tr>
+    <tr><td class="center">21</td><td>Victoire IA</td><td>Clignotement rouge</td></tr>
+    <tr><td class="center">22</td><td>Victoire joueur</td><td>Clignotement jaune</td></tr>
+  </tbody>
+</table>
+<blockquote>
+Astuce de conception : les codes 8 et 9 correspondent au numéro du joueur courant augmenté
+de 7. Le même message signale donc à la fois à qui de jouer et quelle couleur afficher.
+</blockquote>
+
+<h2>Annexe B &mdash; Arborescence annotée</h2>
+<pre class="tree">
+Robot_J4/
+&#9500;&#9472; arduino/                         Code embarqué (C++ / Arduino)
+&#9474;  &#9500;&#9472; arduino_main/                   Programme de jeu (moteurs, pince, LEDs)
+&#9474;  &#9500;&#9472; arduino_position/               Relevé des positions moteur (calibration)
+&#9474;  &#9500;&#9472; led/                            Test de la communication couleur LED
+&#9474;  &#9492;&#9472; testled/                        Détection du nombre de LEDs
+&#9474;
+&#9500;&#9472; python/
+&#9474;  &#9500;&#9472; j4_connect4/                 Paquet installable (commande connect4)
+&#9474;  &#9474;  &#9492;&#9472; connect4_robot_j4/
+&#9474;  &#9474;     &#9500;&#9472; main.py                 Point d'entrée
+&#9474;  &#9474;     &#9500;&#9472; core.py                 Initialisation de la partie
+&#9474;  &#9474;     &#9500;&#9472; game_loop.py            Boucle principale (orchestration)
+&#9474;  &#9474;     &#9500;&#9472; game_state.py           État vivant de la partie
+&#9474;  &#9474;     &#9500;&#9472; game_data.py            Données archivées
+&#9474;  &#9474;     &#9500;&#9472; constants.py            Seuils HSV, ROI, profondeur Minimax
+&#9474;  &#9474;     &#9500;&#9472; camera/                 Vision par ordinateur (OpenCV)
+&#9474;  &#9474;     &#9474;  &#9500;&#9472; camera.py               Détection, stabilisation, matrice
+&#9474;  &#9474;     &#9474;  &#9500;&#9472; camera_handler.py       Capture USB / IP, image de secours
+&#9474;  &#9474;     &#9474;  &#9492;&#9472; auto_calibrated.py      Calibration interactive des couleurs
+&#9474;  &#9474;     &#9500;&#9472; minimax/                Logique de jeu + IA + interface Pygame
+&#9474;  &#9474;     &#9474;  &#9492;&#9472; minimax_functions.py    Plateau, règles, Minimax, affichage
+&#9474;  &#9474;     &#9500;&#9472; arduino_serial/         Communication série (UART)
+&#9474;  &#9474;     &#9474;  &#9500;&#9472; arduino_connection.py   Détection du port, envoi
+&#9474;  &#9474;     &#9474;  &#9492;&#9472; serial_connection.py    Objet série partagé
+&#9474;  &#9474;     &#9492;&#9472; firebase_db/            Persistance Firestore + Elo
+&#9474;  &#9474;        &#9492;&#9472; firebase.py
+&#9474;  &#9500;&#9472; AI/                          IA expérimentale (RL, PyTorch) — non embarquée
+&#9474;  &#9474;  &#9500;&#9472; play_connect4/              Jouer / tester des adversaires
+&#9474;  &#9474;  &#9492;&#9472; train_AI/                   Entraînement (Minimax, self-play, aléatoire)
+&#9474;  &#9492;&#9472; firebase/                    Scripts de maintenance Firestore
+&#9474;
+&#9492;&#9472; docs/
+   &#9500;&#9472; BCN3D-Moveo/                 Mécanique : CAO, STL, nomenclature, manuel
+   &#9492;&#9472; (présentation du projet)
+</pre>
+
+<h2>4. Lecture pédagogique &mdash; angle Sciences de l'Ingénieur</h2>
+<p>
+Robot J4 est un <strong>système pluritechnologique</strong> complet : il associe mécanique,
+électronique, informatique, traitement d'image et intelligence artificielle autour d'une
+fonction de service simple à énoncer &mdash; jouer au Puissance&nbsp;4 contre un humain. C'est cette
+lisibilité qui en fait un support d'étude riche pour la SII.
+</p>
+
+<h3>4.1 Lecture par chaînes fonctionnelles</h3>
+<p>On peut relire l'architecture avec les deux chaînes de la SII.</p>
+<p><strong>Chaîne d'information</strong> (acquérir, traiter, communiquer) :</p>
+<table>
+  <thead><tr><th>Fonction</th><th>Réalisation dans Robot J4</th></tr></thead>
+  <tbody>
+    <tr><td>Acquérir</td><td>Caméra et détection des jetons (<code>camera/</code>)</td></tr>
+    <tr><td>Traiter</td><td>Reconstruction de l'état (matrice 6&times;7) et décision Minimax (<code>minimax/</code>)</td></tr>
+    <tr><td>Communiquer</td><td>Liaison série UART, protocole d'entiers (<code>arduino_serial/</code>)</td></tr>
+  </tbody>
+</table>
+<p><strong>Chaîne d'énergie</strong> (alimenter, distribuer, convertir, transmettre) :</p>
+<table>
+  <thead><tr><th>Fonction</th><th>Réalisation dans Robot J4</th></tr></thead>
+  <tbody>
+    <tr><td>Alimenter</td><td>Alimentation <strong>24&nbsp;V</strong> pour les moteurs pas-à-pas, <strong>5&nbsp;V</strong> pour le servomoteur de la pince</td></tr>
+    <tr><td>Distribuer</td><td>Drivers de moteurs pas-à-pas pilotés par l'Arduino</td></tr>
+    <tr><td>Convertir</td><td>Moteurs pas-à-pas (24&nbsp;V) et servomoteur de pince (5&nbsp;V) : énergie électrique &rarr; mouvement</td></tr>
+    <tr><td>Transmettre</td><td>Articulations du bras BCN3D Moveo &rarr; dépose du jeton</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <div class="layer">
+    <div class="layer-title">Chaîne d'information</div>
+    <div class="flow">
+      <div class="node">Acquérir<span class="sub">caméra</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node">Traiter<span class="sub">vision + Minimax</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node">Communiquer<span class="sub">UART</span></div>
+    </div>
+  </div>
+  <div class="arrow down">&darr;<span style="font-size:.8rem;font-style:italic;color:var(--muted);margin-left:6px;">commande</span></div>
+  <div class="layer">
+    <div class="layer-title">Chaîne d'énergie</div>
+    <div class="flow">
+      <div class="node">Alimenter</div>
+      <div class="arrow">&rarr;</div>
+      <div class="node">Distribuer<span class="sub">drivers</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node">Convertir<span class="sub">moteurs + servo</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node">Transmettre<span class="sub">bras + pince</span></div>
+    </div>
+  </div>
+  <p class="note-link">L'effet observé (jeton déposé) est mesuré par la caméra : la boucle se referme sur la fonction Acquérir.</p>
+  <figcaption>Figure 3 &mdash; Couplage des chaînes d'information et d'énergie.</figcaption>
+</figure>
+
+<h3>4.2 Notions de SII illustrées par le projet</h3>
+<ul>
+  <li><strong>Système bouclé / asservissement par la perception.</strong> Le robot ne suppose pas que son coup a réussi : la caméra vérifie le résultat avant de continuer. La boucle consigne (coup choisi) &rarr; action (dépose) &rarr; mesure (vision) &rarr; comparaison illustre le retour d'information et la robustesse.</li>
+  <li><strong>Architecture en couches et interfaces.</strong> La frontière PC / Arduino est un contrat minimal (un entier = une action). On peut faire évoluer la vision ou l'IA sans toucher au firmware, et inversement : illustration concrète du couplage faible.</li>
+  <li><strong>Conception modulaire logicielle.</strong> Chaque dossier a une responsabilité unique, avec des dépendances explicites : un cas d'étude pour l'ingénierie logicielle.</li>
+  <li><strong>Théorie des jeux et algorithmique.</strong> Minimax, élagage alpha-bêta et heuristique d'évaluation : un support tangible pour aborder la complexité et l'optimisation.</li>
+  <li><strong>Traitement d'image.</strong> Espace colorimétrique HSV, seuillage adaptatif, filtrage morphologique, vote majoritaire temporel : la chaîne complète d'une mesure par vision.</li>
+  <li><strong>Mode dégradé et robustesse.</strong> Absence d'Arduino, de caméra ou de base de données : le système continue de fonctionner partiellement. Bonne entrée pour la tolérance aux pannes et la sûreté de fonctionnement.</li>
+</ul>
+
+<h3>4.3 Pistes d'exploitation en classe</h3>
+<ul>
+  <li>Faire identifier les chaînes fonctionnelles à partir du système réel ou de ce document.</li>
+  <li>Étudier le protocole série (Annexe&nbsp;A) comme exemple d'interface matériel / logiciel.</li>
+  <li>Analyser l'influence de la profondeur Minimax sur la qualité de jeu et le temps de calcul.</li>
+  <li>Étudier la robustesse de la vision face aux variations d'éclairage (seuils HSV adaptatifs).</li>
+  <li>Comparer deux approches d'IA : Minimax (déterministe, embarqué) et apprentissage par renforcement (statistique, expérimental, section 3.8).</li>
+</ul>
+
+<hr style="margin:3em 0 1.5em;border:none;border-top:1px solid var(--line);">
+<p style="color:var(--muted);font-size:.9rem;font-style:italic;">
+Document de référence pour la valorisation académique du projet Robot J4.
+</p>
+
+</main>
+</body>
+</html>
